@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Campus Emergency</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+  
+  * {
+    padding: 0;
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    box-sizing: border-box;
+  }
+  
+  h2 {
+    text-align: center;
+    padding: 0.5em;
+  }
+  
+  p {
+    font-size: 1.3rem;
+    padding: 0.1em;
+  }
+  input {
+    width: 70%;
+    font-size: 1.3rem;
+    margin: 1em;
+  }
+  
+  .msgCont {
+    padding: 1.5em;
+    display: grid;
+    place-items: center;
+  }
+  textarea {
+    font-size: 1.3rem;
+    width: 70%;
+    padding: 0.3em;
+    border-radius: 0.5em;
+    border-color: red;
+  }
+  
+  .emergencyBtnContainer {
+    display: grid;
+    place-items: center;
+    padding: 2em;
+  }
+    .emergencyBtnContainer button {
+      padding: 5rem;
+      border-radius: 50%;
+      border: none;
+      background-color: red;
+    }
+  .tracking {
+    font-size: 1.3rem;
+    display: flex;
+    justify-content: space-between;
+    padding: 1em;
+  }
+  
+  .tracking button {
+    font-size: inherit;
+    padding: 0.2em;
+    border-radius: 0.2em;
+    border: none;
+    background-color: purple;
+    color: white;
+  }
+  
+  button:active {
+    background-color: black;
+  }
+  
+  
+  #map {
+    height: 50vh;
+  }
+  
+  .status {
+    font-size: 1.4rem;
+    margin: 0.5em;
+  }
+  </style>
+</head>
+<body>
+
+<h2>Campus Emergecy Alert System.</h2>
+<p>Tap we come.</p>
+<div class="msgCont">
+<textarea id="msg" placeholder="Optional emergency message"></textarea>
+</div>
+
+<div class="emergencyBtnContainer">
+<button onclick="trigger()"></button>
+</div>
+<div class="tracking">
+<button onclick="start()">Start Tracking</button>
+<button onclick="stop()">Stop Tracking</button>
+</div>
+<div class="status">
+  Status: Tracking <span id="statusText">OFF</span>
+</div>
+
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const ws = new WebSocket("wss://campus-emergency-server.onrender.com");
+
+const token = localStorage.getItem("token");
+
+let marker = null;
+let interval = null;
+let trackingOn = false;
+
+const statusText = document.getElementById("statusText");
+const msgInput = document.getElementById("msg");
+
+const map = L.map("map").setView([0, 0], 2);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+// Authenticate once
+ws.onopen = () => {
+  console.log("WS connected");
+
+  if (!token) {
+    alert("Please login first");
+    ws.close();
+    return;
+  }
+
+  ws.send(JSON.stringify({ token }));
+};
+
+ws.onclose = () => console.log("WS closed");
+
+// Get location
+function getLoc() {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude
+      }),
+      err => reject(err)
+    );
+  });
+}
+
+// Send location / emergency
+async function send(isEmergency = false) {
+  if (!trackingOn) return;
+
+  const loc = await getLoc();
+
+  ws.send(JSON.stringify({
+    latitude: loc.lat,
+    longitude: loc.lng,
+    message: isEmergency ? msgInput.value : null
+  }));
+msgInput.value = "";
+  if (!marker) {
+    marker = L.marker([loc.lat, loc.lng]).addTo(map);
+    map.setView([loc.lat, loc.lng], 16);
+  } else {
+    marker.setLatLng([loc.lat, loc.lng]);
+  }
+}
+
+// Emergency trigger
+function trigger() {
+  if (!token) {
+    alert("Please login first");
+    return;
+  }
+
+  start();
+  send(true);
+}
+
+// Start tracking
+function start() {
+  if (trackingOn) return;
+
+  trackingOn = true;
+  statusText.textContent = "ON";
+  statusText.style.color = "green";
+
+  interval = setInterval(() => send(false), 3000);
+}
+
+// Stop tracking
+function stop() {
+  trackingOn = false;
+  statusText.textContent = "OFF";
+  statusText.style.color = "red";
+
+  clearInterval(interval);
+}
+
+// Messages from server
+ws.onmessage = e => {
+  const data = JSON.parse(e.data);
+
+  switch (data.type) {
+    case "AUTH_ERROR":
+      alert("Session expired. Please login again.");
+      ws.close();
+      break;
+
+    case "NEARBY_ALERT":
+      alert("⚠ Nearby emergency!");
+      break;
+
+    case "ALERT_RESOLVED":
+      alert("✅ Emergency resolved");
+      stop();
+      break;
+  }
+};
+</script>
+</body>
+</html>

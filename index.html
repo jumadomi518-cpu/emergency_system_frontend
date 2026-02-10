@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title></title>
+  <link rel="stylesheet" href="./css/login.css" />
+</head>
+
+<body>
+  <header>
+    <div class="imgParent">
+      <p class="errorMsg"></p>
+    </div>
+  </header>
+  <main>
+    <h1>Please log in</h1>
+
+
+
+  <form action="/" method="POST">
+    <label for="email">Email: </label>
+    <input type="email" id="email" name="email" required />
+    <label for="password">Password: </label>
+    <input type="password" id="password" name="password" required />
+    <p class="forgot"><a href="../forms/forgot.html">forgot password</a></p>
+    <button type="submit">log in</button>                                                      <p class="dont">Don't have an account.</p>
+  <a href="./forms/register.html">register</a>
+  </form>
+  </main>
+  <script src="./js/login.js" defer>
+  </script>
+</body>
+
+</html>

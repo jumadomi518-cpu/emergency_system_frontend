@@ -1,0 +1,104 @@
+    * {
+      margin: 0;
+      padding: 0;
+      font-family: "Poppins", sans-serif;
+      box-sizing: border-box;
+    }
+    
+    body {
+      position: relative;
+    }
+    header {
+      box-shadow: 0 0 20px black;
+      padding: 1em;
+    }
+      .imgParent {
+        display: flex;
+      width: 100%;
+      justify-content: flex-end;
+  }
+  
+
+  
+    
+    form {
+      font-size: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      padding: 4.5em 4.5em 0 4.5em;
+      color: rgba(0, 0, 0, 0.8);
+    }
+    
+    label {
+      margin-top: 1em;
+    }
+    
+    button {
+      margin: 2em auto 1.2em auto;
+      padding: 0.4em;
+      width: 100%;
+      font-size: 1.4rem;
+      border-radius: 10px;
+      border: none;
+      background-color: rgba(150, 200, 50, 0.8);
+      cursor: pointer;
+    }
+    input {
+      font-size: 1.2rem;
+      padding: 0.3em;
+    }
+    h1 {
+      text-align: center;
+      margin-top: 2em;
+      color: rgba(50, 0, 0, 0.5);
+    }
+    p {
+      text-align: center;
+      font-size: 1.5rem;
+    }
+    
+    .dont {
+      font-size: 1rem;
+      text-decoration: underline wavy black;
+    }
+    a[href="./forms/register.html"] {
+      font-size: 1.3rem;
+      text-decoration: none;
+      width: 100%;
+      display: block;
+      margin: 1.2em auto 0 auto;
+      padding: 0.4em;
+      background-color: rgba(150, 200, 50, 0.7);
+      border-radius: 10px;
+      color: rgba(0, 0, 0, 0.9);
+      text-align: center;
+    }
+  
+   .errorMsg {
+      font-size: 1rem;
+      background-color: rgba(250, 0, 0, 0.2);
+      color: crimson;
+      transform: scale(0);
+      font-style: italic;
+      border: 2px solid red;
+      padding: 0.5em;
+      transition: all 0.5s;
+      text-align: left;
+    }
+    
+      .showError {
+      transform: scale(1);
+    }
+    
+    
+    .forgot {
+      display: flex;
+      justify-content: flex-end;
+      font-size: 1rem;
+    }
+        @media (orientation: landscape) {
+      form {
+        width: 50%;
+        margin: auto auto;
+      }
+    }

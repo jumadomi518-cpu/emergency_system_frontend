@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title></title>
+  <style>
+  * {
+    padding: 0;
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+  }
+  
+    .imgParent {
+    width: 18%;
+    z-index: 2;
+  }
+  img {
+    width: 100%;
+    height: auto;
+    margin-top: 2rem;
+    z-index: -2;
+  }
+  
+    .imgP {
+      display: grid;
+      place-items: center;
+    }
+    .msg {
+      font-size: 1.3rem;
+      margin: 2em 0.5em 0.5em 0.5em;
+    }
+    
+    form {
+      display: flex;
+      flex-direction: column;
+      padding-left: 20%;
+      margin: 2em;
+    }
+    input {
+      width: 50%;
+      font-size: 1.3rem;
+      padding: 0.4em;
+    }
+    .resend {
+      margin: 2em;
+      display: flex;
+      justify-content: space-between;
+    }
+    .resendBtn {
+      font-size: 1.5rem;
+      padding: 0.3em;
+      border: none;
+      border-radius: 0.3em;
+      background-color: rgba(150, 200, 50, 0.7);
+    }
+    
+    .resend p {
+      font-size: 1.3rem;
+    }
+    .check {
+      margin: 5%;
+      font-size: 1.5rem;
+      border: 2px solid green;
+      padding: 0.3em;
+      position: absolute;
+      background-color: green;
+      opacity: 0.8;
+      color: white;
+      box-shadow: 0 0 3px 0 black;
+      transform: scale(0);
+      transition: all 0.5s;
+      border-radius: 0.2em;
+      width: 80%;
+    top: 0;
+    z-index: 2;
+    }
+    .trans {
+      transform: scale(1);
+    }
+    
+        @media (orientation: landscape) {
+      form {
+        width: 50%;
+        margin: auto auto;
+      }
+    }
+    
+  </style>
+</head>
+
+<body>
+  <div class="imgP">
+    <div class="imgParent">
+  <img src="../assets/1769019608397.jpg" />
+    </div>
+  </div>
+  
+
+  
+  
+  <main>
+    <p class="check">Check your email address</p>
+    <p class="msg">We have sent a one time password to your email.</p>
+    <form>
+      <label for="otp">Enter OTP</label>
+      <input type="number" id="otp" name="otp" />
+    </form>
+    <div class="resend">
+      <p class="processing"></p>
+      <button class="resendBtn">resend OTP</button>
+    </div>
+  </main>
+<script>
+  const otp = document.querySelector("input");
+  const dis = document.querySelector(".processing");
+  const resendBtn = document.querySelector(".resendBtn");
+  const check = document.querySelector(".check");
+  
+  
+  
+  function countDown() {
+    let time = 30;
+  const i = setInterval(() => {
+    time--;
+    localStorage.setItem("count", time);
+    resendBtn.innerText = localStorage.getItem('count');
+    resendBtn.setAttribute("disabled", "true");
+    if ( time === 50) check.classList.remove("trans");
+  }, 1000);
+  
+  setTimeout(() => {
+    resendBtn.removeAttribute("disabled");
+    resendBtn.innerText = "resend otp";
+    clearInterval(i);
+  }, 31000);
+  }
+  
+  
+  resendBtn.onclick = async () => {
+    countDown();
+    const res = await fetch("https://campus-emergency-server.onrender.com/api/register/resendOtp", {
+      method: "POST",
+      headers: { 
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: localStorage.getItem("email")
+      })
+    })
+    
+    const data = await res.json();
+    console.log(data);
+    if ( data.status === 'success') check.classList.add("trans");
+    setTimeout(() => {
+      check.classList.remove("trans");
+    }, 4000);
+  };
+  
+  
+  
+  otp.oninput = async () => {
+    if (otp.value.length === 6) {
+      dis.innerText = "Processing...";
+      otp.setAttribute("disabled", "true");
+      
+      const res = await fetch("https://campus-emergency-server.onrender.com/api/register/confirmOtp", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: localStorage.getItem('email'),
+          otp: otp.value
+        })
+      });
+      
+      const data = await res.json();
+      console.log(data);
+      if (data.status === "success") {
+        window.location.replace("/frontend/index.html");
+      } else {
+        alert(data.status);
+        otp.removeAttribute("disabled");
+        dis.innerText = "";
+      }
+    }
+    
+    
+  }
+const email = localStorage.getItem("email");
+console.log(email);
+</script>
+</body>
+
+</html>

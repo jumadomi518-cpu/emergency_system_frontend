@@ -1,0 +1,151 @@
+    * {
+      margin: 0;
+      padding: 0;
+      font-family: "Poppins", sans-serif;
+      box-sizing: border-box;
+    }
+    
+    body {
+      position: relative;
+    }
+    
+    header {
+      box-shadow: 0 0 20px 0 black;
+      padding: 1em;
+    }
+     
+    .imgParent {
+      display: flex;
+      width: 100%;
+      justify-content: flex-end;
+  }
+
+  
+
+
+    form {
+      font-size: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      padding: 0 4em 4em 4em;
+      color: rgba(0, 0, 0, 0.8);
+    }
+
+    label {
+      margin-top: 1em;
+    }
+
+    button[type="submit"] {
+      margin: 2em auto 0 auto;
+      width: 100%;
+      font-size: 1.4rem;
+      padding: 0.3em;
+      border-radius: 10px;
+      border: none;
+      background-color: rgba(250, 0, 0, 0.2);
+      color: crimson;
+      cursor: pointer;
+    }
+    input {
+      font-size: 1.2rem;
+      padding: 0.3em;
+      color: rgb(25, 0, 0, 0.6);
+      outline: none;
+    }
+    input:valid {
+      border: 2px solid green;
+    }
+    input:invalid {
+border: 2px solid red;
+    }
+    
+    h1 {
+      text-align: center;
+      margin-top: 2em;
+      color: rgba(50, 0, 0, 0.8);
+    }
+    p {
+      text-align: center;
+      font-size: 1.5rem;
+    }
+    a {
+      text-decoration: none;
+      display: inline-block;
+      padding: 0.1em;
+
+    }
+    .errorMsg {
+      font-size: 1rem;
+      background-color: rgba(250, 0, 0, 0.2);
+      color: crimson;
+      transform: scale(0);
+      font-style: italic;
+      border: 2px solid red;
+      padding: 0.5em;
+      transition: all 0.5s;
+      text-align: left;
+    }
+    
+    .showError {
+      transform: scale(1);
+    }
+
+    .eyeCont {
+      display: flex;
+    }
+    
+    .eyeCont input {
+      width: 90%;
+    }
+    
+    .showConfir, .showPass {
+      padding: 0.5em;
+      place-items: center;
+      border: 2px solid black;
+      border-left: none;
+      width: 10%;
+      background-color: transparent;
+      font-size: 1.2rem;
+      overflow: scroll;
+    }
+  
+    .login {
+      font-size: 1rem;
+      text-align: left;
+    }
+    
+    .togglePassword {
+      box-shadow: 0 0 2px 2px black;
+    }
+    
+    .spin {
+    width: 30px;
+    height: 30px;
+    display: inline-block;
+    border-left: 2px solid green;
+border-right: 2px solid rgba(150, 200, 50, 0.8);
+border-top: 2px solid rgba(150, 200, 50, 0.8);
+border-bottom: 2px solid rgba(150, 200, 50, 0.8);
+    border-radius: 50%;
+    animation: rotate 0.5s ease-out infinite;
+    }
+    
+    @keyframes rotate {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+    
+    
+    .none {
+      display: none;
+    }
+  @media (orientation: landscape) {
+      form {
+        width: 50%;
+        margin: auto auto;
+      }
+    }
