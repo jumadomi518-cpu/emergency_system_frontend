@@ -82,8 +82,8 @@ const form = document.querySelector("form");
 
     submitBtn.innerHTML = "";
     submitBtn.innerText = "submit";
-
   window.location.href = "../forms/otp.html";
+  
   } else if (feedback.status === "user exists") {
     submitBtn.innerHTML = "";
     submitBtn.innerText = "submit";
