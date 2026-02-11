@@ -179,7 +179,7 @@
       const data = await res.json();
       console.log(data);
       if (data.status === "success") {
-        window.location.replace("/frontend/index.html");
+        window.location.replace("../index.html");
       } else {
         alert(data.status);
         otp.removeAttribute("disabled");
