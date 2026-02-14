@@ -10,7 +10,7 @@ const btn = document.querySelector("button");
       input.oninput = () => {
         error.classList.remove("showError");
       }
-    });                                                                                               
+    });
 
 
     form.onsubmit = async (e) => {
@@ -32,6 +32,8 @@ const btn = document.querySelector("button");
     if (data.success) {
       localStorage.setItem("token", data.token);
       localStorage.setItem("data", data.role);
+      localStorage.setItem("userId", data.userId);
+      alert(data.userId);
       if (data.role === "user") {
       window.location.replace("./pages/user.html");
       } else {
