@@ -33,7 +33,6 @@ const btn = document.querySelector("button");
       localStorage.setItem("token", data.token);
       localStorage.setItem("data", data.role);
       localStorage.setItem("userId", data.userId);
-      alert(data.userId);
       if (data.role === "user") {
       window.location.replace("./pages/user.html");
       } else {
