@@ -11,7 +11,7 @@ show.onclick = () => {
 
 // SERVICE WORKER
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/frontend/js/sw.js")
+  navigator.serviceWorker.register("./sw.js")
     .then(() => console.log("SW registered"))
     .catch(err => console.log("SW registration failed:", err));
 }

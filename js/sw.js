@@ -35,7 +35,7 @@ self.addEventListener("notificationclick", event => {
           windowClients[0].postMessage({ type: "VALIDATE_RESPONSE", alertId, vote });
         } else {
           // Site closed → fallback to REST API
-          fetch("https://your-backend-domain.com/api/validate-alert", {
+          fetch("https://campus-emergency-server.onrender.com/api/validate-alert", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
