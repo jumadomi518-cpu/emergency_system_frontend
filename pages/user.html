@@ -13,20 +13,51 @@
     box-sizing: border-box;
   }
   
-  h2 {
-    text-align: center;
-    padding: 0.5em;
+
+  
+.scale {
+  height: 0;
+  overflow: hidden;
+}
+
+
+.show {
+  text-align: right;
+}
+  header {
+    display: flex;
   }
+  
+  #logo {
+    height: 10vh;
+  }
+  
+  
+  .ambulance {
+    display: flex;
+  }
+  
+  #ambulance {
+    object-fit: contain;
+    height: 20vh;
+  }
+  .emergency_type {
+    font-size: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    padding: 2em;
+  }
+  input[type="radio"] {
+  accent-color: #ff4d6d;
+  width: 20px;
+  height: 20px;
+}
   
   p {
     font-size: 1.3rem;
-    padding: 0.1em;
+    padding: 0.7em;
   }
-  input {
-    width: 70%;
-    font-size: 1.3rem;
-    margin: 1em;
-  }
+
   
   .msgCont {
     padding: 1.5em;
@@ -73,22 +104,52 @@
   }
   
   
-  #map {
+  .map {
     height: 50vh;
   }
   
+  .expand {
+  height: 90vh;
+}
+
   .status {
     font-size: 1.4rem;
     margin: 0.5em;
+    display: flex;
+    justify-content: space-between;
   }
+  
+  
   </style>
 </head>
 <body>
+  <section>
+  <header>
+    <img src="/frontend/assets/1771060588592.png" id="logo" />
 
-<h2>Campus Emergecy Alert System.</h2>
-<p>Tap we come.</p>
+<p>Instantly alert nearby responders and share your live location when every second matters.</p>
+  </header>
+
+<div class="ambulance">
+<div class="emergency_type">
+  <div>
+  <input type="radio" name="type" value="ACCIDENT" />
+  <label for="accident">Accident</label>
+  </div>
+    <div>
+  <input type="radio" name="type" value="FIRE_OUTBREAK" />
+  <label for="accident">Fire Outbreak</label>
+  </div>
+    <div>
+  <input type="radio" name="type" value="ROBBERY" />
+  <label for="accident">Robbery</label>
+  </div>
+</div>
+<img src="../assets/images.jpeg" id="ambulance" >
+</div>
+
 <div class="msgCont">
-<textarea id="msg" placeholder="Optional emergency message"></textarea>
+<textarea id="msg" placeholder="Write here..."></textarea>
 </div>
 
 <div class="emergencyBtnContainer">
@@ -98,126 +159,19 @@
 <button onclick="start()">Start Tracking</button>
 <button onclick="stop()">Stop Tracking</button>
 </div>
+
+  </section>
 <div class="status">
+  <div>
   Status: Tracking <span id="statusText">OFF</span>
+  </div>
+  <div class="show">
+   ⛶
 </div>
-
-<div id="map"></div>
+</div>
+<div id="map" class="map"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-const ws = new WebSocket("wss://campus-emergency-server.onrender.com");
-
-const token = localStorage.getItem("token");
-
-let marker = null;
-let interval = null;
-let trackingOn = false;
-
-const statusText = document.getElementById("statusText");
-const msgInput = document.getElementById("msg");
-
-const map = L.map("map").setView([0, 0], 2);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
-// Authenticate once
-ws.onopen = () => {
-  console.log("WS connected");
-
-  if (!token) {
-    alert("Please login first");
-    ws.close();
-    return;
-  }
-
-  ws.send(JSON.stringify({ token }));
-};
-
-ws.onclose = () => console.log("WS closed");
-
-// Get location
-function getLoc() {
-  return new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(
-      pos => resolve({
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude
-      }),
-      err => reject(err)
-    );
-  });
-}
-
-// Send location / emergency
-async function send(isEmergency = false) {
-  if (!trackingOn) return;
-
-  const loc = await getLoc();
-
-  ws.send(JSON.stringify({
-    latitude: loc.lat,
-    longitude: loc.lng,
-    message: isEmergency ? msgInput.value : null
-  }));
-msgInput.value = "";
-  if (!marker) {
-    marker = L.marker([loc.lat, loc.lng]).addTo(map);
-    map.setView([loc.lat, loc.lng], 16);
-  } else {
-    marker.setLatLng([loc.lat, loc.lng]);
-  }
-}
-
-// Emergency trigger
-function trigger() {
-  if (!token) {
-    alert("Please login first");
-    return;
-  }
-
-  start();
-  send(true);
-}
-
-// Start tracking
-function start() {
-  if (trackingOn) return;
-
-  trackingOn = true;
-  statusText.textContent = "ON";
-  statusText.style.color = "green";
-
-  interval = setInterval(() => send(false), 3000);
-}
-
-// Stop tracking
-function stop() {
-  trackingOn = false;
-  statusText.textContent = "OFF";
-  statusText.style.color = "red";
-
-  clearInterval(interval);
-}
-
-// Messages from server
-ws.onmessage = e => {
-  const data = JSON.parse(e.data);
-
-  switch (data.type) {
-    case "AUTH_ERROR":
-      alert("Session expired. Please login again.");
-      ws.close();
-      break;
-
-    case "NEARBY_ALERT":
-      alert("⚠ Nearby emergency!");
-      break;
-
-    case "ALERT_RESOLVED":
-      alert("✅ Emergency resolved");
-      stop();
-      break;
-  }
-};
+<script src="../js/app.js">
 </script>
 </body>
 </html>
