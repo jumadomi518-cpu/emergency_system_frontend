@@ -1,22 +1,25 @@
 // Listen for push notifications
+
 self.addEventListener("push", event => {
-  let data = {};
-  if (event.data) data = event.data.json();
+  const data = event.data ? event.data.json() : {};
 
   const options = {
-    body: data.message,
+    body: data.message || "An emergency occurred nearby. Please confirm.",
+    icon: "../assets/alert-icon.png",
+    badge: "../assets/badge.png",
     vibrate: [200, 100, 200],
     data: { alertId: data.alertId },
     actions: [
       { action: "true", title: "True" },
       { action: "false", title: "False" }
     ]
-  }
+  };
 
   event.waitUntil(
-    self.registration.showNotification("An emergency has been triggered near you please confirm if it is true or false", options)
+    self.registration.showNotification("Emergency Alert!", options)
   );
 });
+
 
 // Handle notification clicks
 self.addEventListener("notificationclick", event => {
