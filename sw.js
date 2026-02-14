@@ -8,13 +8,13 @@ self.addEventListener("push", event => {
     vibrate: [200, 100, 200],
     data: { alertId: data.alertId },
     actions: [
-      { action: "true", title: "✅ True" },
-      { action: "false", title: "❌ False" }
+      { action: "true", title: "True" },
+      { action: "false", title: "False" }
     ]
   }
 
   event.waitUntil(
-    self.registration.showNotification("Emergency Nearby!", options)
+    self.registration.showNotification("An emergency has been triggered near you please confirm if it is true or false", options)
   );
 });
 
