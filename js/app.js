@@ -113,7 +113,7 @@ function start() {
     const { latitude, longitude } = pos.coords;
     document.getElementById("statusText").innerText = "ON";
 
-    if(ws && ws.readyState === ws.OPEN){
+    if(ws && ws.readyState === WebSocket.OPEN){
       ws.send(JSON.stringify({ type: "LOCATION_UPDATE", latitude, longitude }));
     }
   }, err => console.log(err), { enableHighAccuracy: true });
@@ -182,7 +182,11 @@ async function handleWSMessage(event){
     }
   log("emergency assighnment");
   }
-
+    if (msg.type === "RESPONDER_LOCATION_UPDATE") {
+  if (responderMarkers[msg.responderId]) {
+    responderMarkers[msg.responderId].setLatLng([msg.latitude, msg.longitude]);
+  }
+}
   // Responder Accepted Alert (victim view)
   if (msg.type === "RESPONDER_ACCEPTED") {
     const { responder, alertId } = msg;
@@ -194,10 +198,14 @@ async function handleWSMessage(event){
 }
 
 // TRACK RESPONDER (victim view)
-async function trackResponder(responder, alertId) {
-  if(!emergencyMarker) return;
-  const start = [responder.lat || 0, responder.lng || 0];
-  const end = [emergencyMarker.getLatLng().lat, emergencyMarker.getLatLng().lng];
+  async function trackResponder(responder, alertId) {
+  if (!emergencyMarker) return;
+
+  const start = [responder.lat, responder.lng];
+  const end = [
+    emergencyMarker.getLatLng().lat,
+    emergencyMarker.getLatLng().lng
+  ];
 
   const url = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`;
   const resp = await fetch(url);
@@ -206,20 +214,16 @@ async function trackResponder(responder, alertId) {
 
   const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
 
-  if (responderMarkers[responder.id]) map.removeLayer(responderMarkers[responder.id]);
-  responderMarkers[responder.id] = L.marker(coords[0], { icon: L.icon({ iconUrl: "responder.png", iconSize: [32,32] }) }).addTo(map);
-
-  if (routeLines[responder.id]) map.removeLayer(routeLines[responder.id]);
-  routeLines[responder.id] = L.polyline(coords, { color: "blue" }).addTo(map);
-
-  let i = 0;
-  function animate() {
-    if (i >= coords.length) return;
-    responderMarkers[responder.id].setLatLng(coords[i]);
-    i++;
-    requestAnimationFrame(animate);
+  // Create marker
+  if (!responderMarkers[alertId]) {
+    responderMarkers[alertId] = L.marker(start, {
+      icon: L.icon({ iconUrl: "responder.png", iconSize: [32, 32] })
+    }).addTo(map);
   }
-  animate();
+
+  // Draw route
+  if (routeLines[alertId]) map.removeLayer(routeLines[alertId]);
+  routeLines[alertId] = L.polyline(coords, { color: "blue" }).addTo(map);
 }
 
 // TRACK RESPONDER ROUTE (for responder dashboard)
