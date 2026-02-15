@@ -1,4 +1,27 @@
 
+
+function saveTokenForSW(token) {
+  const request = indexedDB.open("emergencyDB", 1);
+
+  request.onupgradeneeded = () => {
+    const db = request.result;
+    if (!db.objectStoreNames.contains("tokens")) {
+      db.createObjectStore("tokens");
+    }
+  };
+
+  request.onsuccess = () => {
+    const db = request.result;
+    const tx = db.transaction("tokens", "readwrite");
+    tx.objectStore("tokens").put(token, "authToken");
+    tx.oncomplete = () => console.log("Token saved for SW fallback");
+  };
+
+  request.onerror = (err) => console.error("IndexedDB error saving token", err);
+}
+
+
+
 const error = document.querySelector(".errorMsg");
 const btn = document.querySelector("button");
     const form = document.querySelector("form");
@@ -31,6 +54,7 @@ const btn = document.querySelector("button");
 
     if (data.success) {
       localStorage.setItem("token", data.token);
+      saveTokenForSW(data.token);
       localStorage.setItem("data", data.role);
       localStorage.setItem("userId", data.userId);
       if (data.role === "user") {
