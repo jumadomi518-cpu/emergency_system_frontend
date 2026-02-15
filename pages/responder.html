@@ -87,7 +87,7 @@ function handleWSMessage(e){
     const msg = JSON.parse(e.data);
 
     // NEW ALERT
-    if(msg.type === "NEW_ALERT"){
+    if(msg.type === "VALIDATE_ALERT"){
       const a = msg.data;
       activeAlerts[a.alertId] = a;
 
@@ -97,7 +97,7 @@ function handleWSMessage(e){
 
       // Table row
       let actionHTML = '';
-      if(role === 'admin'){
+      if(role !== 'admin'){
         actionHTML = `<button class="resolve" onclick="resolve(${a.alertId})">Resolve</button>`;
       } else if(role !== 'admin'){
         actionHTML = `<button class="accept" onclick="respond(${a.alertId}, true)">Accept</button>
