@@ -1,10 +1,9 @@
 // Listen for push notifications
-
 self.addEventListener("push", event => {
   const data = event.data ? event.data.json() : {};
 
   const options = {
-    body: data.message || "An emergency occurred nearby. Please confirm.",
+    body: data.message || "An emergency has occurred near you. Please confirm.",
     icon: "../assets/alert-icon.png",
     badge: "../assets/badge.png",
     vibrate: [250, 100, 250],
@@ -16,10 +15,9 @@ self.addEventListener("push", event => {
   };
 
   event.waitUntil(
-    self.registration.showNotification("Emergency Alert!", options)
+    self.registration.showNotification("Mbiu emergency Alert", options)
   );
 });
-
 
 // Handle notification clicks
 self.addEventListener("notificationclick", event => {
@@ -27,27 +25,20 @@ self.addEventListener("notificationclick", event => {
   let vote = null;
 
   if (event.action === "true") vote = true;
-  if (event.action === "false") vote = false;
+  else if (event.action === "false") vote = false;
+  else vote = confirm("Was this emergency true? OK = True, Cancel = False");
 
   event.notification.close();
 
   if (vote !== null) {
     event.waitUntil(
-      clients.matchAll({ type: "window", includeUncontrolled: true }).then(windowClients => {
-        if (windowClients.length > 0) {
-          windowClients[0].postMessage({ type: "VALIDATE_RESPONSE", alertId, vote });
-        } else {
-          // Site closed → fallback to REST API
-          fetch("https://campus-emergency-server.onrender.com/api/validate-alert", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + localStorage.getItem("token")
-            },
-            body: JSON.stringify({ alertId, vote })
+      clients.matchAll({ type: "window", includeUncontrolled: true })
+        .then(windowClients => {
+          // send vote to all open tabs
+          windowClients.forEach(client => {
+            client.postMessage({ type: "VALIDATE_RESPONSE", alertId, vote });
           });
-        }
-      })
+        })
     );
   }
 });

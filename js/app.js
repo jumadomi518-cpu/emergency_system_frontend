@@ -1,3 +1,17 @@
+
+
+navigator.serviceWorker.addEventListener("message", event => {
+  const { type, alertId, vote } = event.data;
+  if (type === "VALIDATE_RESPONSE") {
+    if (ws && ws.readyState === ws.OPEN) {
+      ws.send(JSON.stringify({ type, alertId, vote }));
+      log(`Vote sent from SW: alertId=${alertId}, vote=${vote}`);
+    }
+  }
+});
+
+
+
 function log(msg){
   console.log(msg); // keep browser console logging for later
   const panel = document.getElementById("debugPanel");
