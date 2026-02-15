@@ -156,13 +156,13 @@ function handleWSMessage(e){
 
 // ADMIN ACTION
 function resolve(alertId){
-  if(ws && ws.readyState === ws.OPEN)
+  if(ws && ws.readyState === WebSocket.OPEN)
     ws.send(JSON.stringify({type:"RESOLVE_ALERT", alertId}));
 }
 
 // RESPONDER ACTION
 function respond(alertId, accept){
-  if(ws && ws.readyState === ws.OPEN)
+  if(ws && ws.readyState === WebSocket.OPEN)
     ws.send(JSON.stringify({type:"RESPONDER_RESPONSE", alertId, accept}));
 
   // Update table
@@ -236,7 +236,7 @@ async function drawResponderRoute(alertId, destLat, destLng){
   navigator.geolocation.watchPosition(pos=>{
     updateRoute();
     // Send live location updates
-    if(ws && ws.readyState===ws.OPEN){
+    if(ws && ws.readyState===WebSocket.OPEN){
       ws.send(JSON.stringify({type:"LOCATION_UPDATE", latitude: pos.coords.latitude, longitude: pos.coords.longitude}));
     }
   }, err=>log(err), {enableHighAccuracy:true});
