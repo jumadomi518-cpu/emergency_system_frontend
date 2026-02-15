@@ -7,7 +7,7 @@ self.addEventListener("push", event => {
     body: data.message || "An emergency occurred nearby. Please confirm.",
     icon: "../assets/alert-icon.png",
     badge: "../assets/badge.png",
-    vibrate: [200, 100, 200],
+    vibrate: [250, 100, 250],
     data: { alertId: data.alertId },
     actions: [
       { action: "true", title: "True" },
