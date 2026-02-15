@@ -156,6 +156,28 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
+function smoothMoveMarker(marker, newLatLng) {
+  const currentLatLng = marker.getLatLng();
+  const steps = 20; // number of animation steps
+  let step = 0;
+
+  const latStep = (newLatLng[0] - currentLatLng.lat) / steps;
+  const lngStep = (newLatLng[1] - currentLatLng.lng) / steps;
+
+  function animateStep() {
+    if (step >= steps) return;
+    marker.setLatLng([
+      currentLatLng.lat + latStep * step,
+      currentLatLng.lng + lngStep * step
+    ]);
+    step++;
+    requestAnimationFrame(animateStep);
+  }
+
+  animateStep();
+}
+
+
 // HANDLE WEBSOCKET MESSAGES
 async function handleWSMessage(event){
   const msg = JSON.parse(event.data);
@@ -183,10 +205,21 @@ async function handleWSMessage(event){
   log("emergency assighnment");
   }
     if (msg.type === "RESPONDER_LOCATION_UPDATE") {
-  if (responderMarkers[msg.responderId]) {
-    responderMarkers[msg.responderId].setLatLng([msg.latitude, msg.longitude]);
+  const responderId = msg.responderId;
+  const newLatLng = [msg.latitude, msg.longitude];
+
+  if (!responderMarkers[responderId]) {
+    // create marker if it doesn't exist
+    responderMarkers[responderId] = L.marker(newLatLng, {
+      icon: L.icon({ iconUrl: "responder.png", iconSize: [32, 32] })
+    }).addTo(map);
+  } else {
+    // smoothly move marker
+    smoothMoveMarker(responderMarkers[responderId], newLatLng);
   }
+  log(`New location received for ${responderId}`);
 }
+
   // Responder Accepted Alert (victim view)
   if (msg.type === "RESPONDER_ACCEPTED") {
     const { responder, alertId } = msg;
