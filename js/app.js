@@ -173,7 +173,7 @@ async function handleWSMessage(event){
 
     if (emergencyMarker) map.removeLayer(emergencyMarker);
     emergencyMarker = L.marker([latitude, longitude], {
-      icon: L.icon({ iconUrl: "emergency.png", iconSize: [32,32] })
+      icon: L.icon({ iconUrl: "../assets/emergency.png", iconSize: [32,32] })
     }).addTo(map).bindPopup(message);
     map.setView([latitude, longitude], 15);
 
@@ -187,7 +187,9 @@ async function handleWSMessage(event){
   if (msg.type === "RESPONDER_ACCEPTED") {
     const { responder, alertId } = msg;
     trackResponder(responder, alertId);
-   log("responder acceptes");
+   log("responder accepted");
+   log(responder);
+   log(alertId);
   }
 }
 
