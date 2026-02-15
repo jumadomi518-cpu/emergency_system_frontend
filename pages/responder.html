@@ -63,11 +63,19 @@ function connectWS(){
   ws.onopen = () => {
     const token = localStorage.getItem("token");
     if(token) ws.send(JSON.stringify({ token }));
-   
+    navigator.geolocation.getCurrentPosition(pos => {
+  if(ws && ws.readyState === ws.OPEN){
+    ws.send(JSON.stringify({
+      type: "LOCATION_UPDATE",
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude
+    }));
+  }
+}, err => log(err), { enableHighAccuracy: true });   
 
 
   log("WebSocket connected");
-
+  log(role);
 
 
   };
@@ -88,7 +96,8 @@ function handleWSMessage(e){
 
     // NEW ALERT
     if(msg.type === "VALIDATE_ALERT"){
-      const a = msg.data;
+      const a = msg;
+      log(msg);
       activeAlerts[a.alertId] = a;
 
       // Map marker
@@ -97,9 +106,9 @@ function handleWSMessage(e){
 
       // Table row
       let actionHTML = '';
-      if(role !== 'admin'){
+      if(role === 'admin'){
         actionHTML = `<button class="resolve" onclick="resolve(${a.alertId})">Resolve</button>`;
-      } else if(role !== 'admin'){
+      } else {
         actionHTML = `<button class="accept" onclick="respond(${a.alertId}, true)">Accept</button>
                       <button class="reject" onclick="respond(${a.alertId}, false)">Reject</button>`;
       }
