@@ -30,6 +30,16 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+
+function log(msg){
+  console.log(msg); // keep browser console logging for later
+  const panel = document.getElementById("debugPanel");
+  if(!panel) return;
+  const time = new Date().toLocaleTimeString();
+  panel.innerText += `[${time}] ${typeof msg === "object" ? JSON.stringify(msg) : msg}\n`;
+  panel.scrollTop = panel.scrollHeight; // auto-scroll
+}
+
 // CONFIG
 const WS_URL = "wss://campus-emergency-server.onrender.com";
 const userId = localStorage.getItem("userId");
@@ -53,11 +63,17 @@ function connectWS(){
   ws.onopen = () => {
     const token = localStorage.getItem("token");
     if(token) ws.send(JSON.stringify({ token }));
-    console.log("WebSocket connected (dashboard)");
+   
+
+
+  log("WebSocket connected");
+
+
+
   };
 
   ws.onclose = () => {
-    console.log("WebSocket disconnected, retry in 3s");
+    log("WebSocket disconnected, retry in 3s");
     setTimeout(connectWS, 3000);
   };
 
@@ -125,7 +141,7 @@ function handleWSMessage(e){
     }
 
   } catch(err){
-    console.error("WS message error:", err);
+    log("WS message error:", err);
   }
 }
 
@@ -176,7 +192,7 @@ async function trackResponder(responder, alertId){
     }
     animate();
 
-  } catch(err){ console.error("trackResponder error:", err); }
+  } catch(err){ log("trackResponder error:", err); }
 }
 
 // DRAW ROUTE FOR RESPONDER (self-navigation)
@@ -214,9 +230,24 @@ async function drawResponderRoute(alertId, destLat, destLng){
     if(ws && ws.readyState===ws.OPEN){
       ws.send(JSON.stringify({type:"LOCATION_UPDATE", latitude: pos.coords.latitude, longitude: pos.coords.longitude}));
     }
-  }, err=>console.error(err), {enableHighAccuracy:true});
+  }, err=>log(err), {enableHighAccuracy:true});
 }
 </script>
+
+<div id="debugPanel" style="
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  font-size: 12px;
+  z-index: 9999;
+  padding: 5px;
+  font-family: monospace;
+"></div>
 
 </body>
 </html>

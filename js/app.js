@@ -1,3 +1,12 @@
+function log(msg){
+  console.log(msg); // keep browser console logging for later
+  const panel = document.getElementById("debugPanel");
+  if(!panel) return;
+  const time = new Date().toLocaleTimeString();
+  panel.innerText += `[${time}] ${typeof msg === "object" ? JSON.stringify(msg) : msg}\n`;
+  panel.scrollTop = panel.scrollHeight; // auto-scroll
+}
+
 
 const show = document.querySelector(".show");
 const section = document.querySelector("section");
@@ -12,8 +21,8 @@ show.onclick = () => {
 // SERVICE WORKER
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js")
-    .then(() => console.log("SW registered"))
-    .catch(err => console.log("SW registration failed:", err));
+    .then(() => log("SW registered"))
+    .catch(err => log("SW registration failed:", err));
 }
 
 // NOTIFICATION PERMISSION
@@ -33,11 +42,11 @@ function connectWebSocket() {
   ws.addEventListener("open", () => {
     const token = localStorage.getItem("token");
     if(token) ws.send(JSON.stringify({ token }));
-    console.log("WebSocket connected");
+    log("WebSocket connected");
   });
 
   ws.addEventListener("close", () => {
-    console.log("WebSocket disconnected, retrying in 3s...");
+    log("WebSocket disconnected, retrying in 3s...");
     setTimeout(connectWebSocket, 3000); // reconnect loop
   });
 
@@ -78,7 +87,7 @@ function trigger() {
     alert("Emergency sent!");
     msg.value = "";
     type.value = "";
-  }, err => console.error(err), { enableHighAccuracy: true });
+  }, err => log(err), { enableHighAccuracy: true });
 }
 
 // LOCATION TRACKING
@@ -116,9 +125,9 @@ async function subscribePush() {
       body: JSON.stringify({ userId: localStorage.getItem("userId"), subscription: sub })
     });
 
-    console.log("Push subscription sent");
+    log("Push subscription sent");
   } catch (err) {
-    console.error("Push subscription failed:", err);
+    log("Push subscription failed:", err);
   }
 }
 subscribePush().catch(console.error);
