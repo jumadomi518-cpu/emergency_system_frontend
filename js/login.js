@@ -36,7 +36,7 @@ const btn = document.querySelector("button");
       if (data.role === "user") {
       window.location.replace("./pages/user.html");
       } else {
-        window.location.replace("./pages/admin.html");
+        window.location.replace("./pages/responder.html");
       }
 
     } else {                                 error.innerText = data.message;
