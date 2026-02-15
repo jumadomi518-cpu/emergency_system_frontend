@@ -55,7 +55,7 @@ const btn = document.querySelector("button");
     if (data.success) {
       localStorage.setItem("token", data.token);
       saveTokenForSW(data.token);
-      localStorage.setItem("data", data.role);
+      localStorage.setItem("role", data.role);
       localStorage.setItem("userId", data.userId);
       if (data.role === "user") {
       window.location.replace("./pages/user.html");
