@@ -88,6 +88,7 @@ function trigger() {
     msg.value = "";
     type.value = "";
   }, err => log(err), { enableHighAccuracy: true });
+  log("Emergency message sent");
 }
 
 // LOCATION TRACKING
@@ -149,7 +150,8 @@ async function handleWSMessage(event){
   if (msg.type === "VALIDATE_ALERT") {
     const vote = confirm(msg.message + "\nOK = TRUE, Cancel = FALSE");
     ws.send(JSON.stringify({ type: "VALIDATE_RESPONSE", alertId: msg.alertId, vote }));
-  }
+ log("validation message received");
+ }
 
   // Emergency Assigned to Responder (LIVE)
   if (msg.type === "EMERGENCY_ASSIGNMENT") {
@@ -164,12 +166,14 @@ async function handleWSMessage(event){
     if (responder && responder.id === localStorage.getItem("userId")) {
       trackResponderRoute(responder, [latitude, longitude], alertId);
     }
+  log("emergency assighnment");
   }
 
   // Responder Accepted Alert (victim view)
   if (msg.type === "RESPONDER_ACCEPTED") {
     const { responder, alertId } = msg;
     trackResponder(responder, alertId);
+   log("responder acceptes");
   }
 }
 
@@ -231,5 +235,5 @@ async function trackResponderRoute(responder, destination, alertId) {
       requestAnimationFrame(animate);
     }
     animate();
-  }, err => console.error(err), { enableHighAccuracy: true });
+  }, err => log(err), { enableHighAccuracy: true });
 }
