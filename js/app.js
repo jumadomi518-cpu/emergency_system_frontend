@@ -126,7 +126,7 @@ if (!victimMarker) {
 } else {
   smoothMoveMarker(victimMarker, newLatLng);
 }
-log("Victim coords:", latitude, longitude);
+
 map.setView(newLatLng, 15);
 
     if (ws && ws.readyState === WebSocket.OPEN) {
