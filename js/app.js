@@ -107,6 +107,7 @@ function trigger() {
 // LOCATION TRACKING
 
 let victimMarker = null;
+let watchId = null;
 function start() {
   if (watchId) return;
 
