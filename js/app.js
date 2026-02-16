@@ -118,13 +118,16 @@ function start() {
     const newLatLng = [latitude, longitude];
 
     // SHOW victim location on map
-    if (!victimMarker) {
-      victimMarker = L.marker(newLatLng, {
-        icon: L.icon({ iconUrl: "victim.png", iconSize: [32, 32] })
-      }).addTo(map).bindPopup("Your current location");
-    } else {
-      smoothMoveMarker(victimMarker, newLatLng);
-    }
+if (!victimMarker) {
+  victimMarker = L.marker(newLatLng)
+    .addTo(map)
+    .bindPopup("Your current location")
+    .openPopup();
+} else {
+  smoothMoveMarker(victimMarker, newLatLng);
+}
+
+map.setView(newLatLng, 15);
 
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ 
