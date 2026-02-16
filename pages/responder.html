@@ -1,32 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Emergency Dashboard</title>
+  <title>Emergency Response Dashboard</title>
+  <meta charset="UTF-8" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
-    * { margin: 0; padding: 0; font-family: "Poppins", sans-serif; box-sizing: border-box; }
-    body { font-family: Arial; padding: 10px; }
-    h2 { text-align: center; white-space: nowrap; overflow: scroll; padding: 0.5em; }
-    #map { height: 400px; margin-bottom: 10px; }
-    table { width: 100%; margin-top: 10px; border-collapse: collapse; }
-    td, th { padding:5px; border:1px solid #ccc; text-align:center; }
-    button { padding: 0.3em 0.6em; border-radius: 0.3em; border: none; cursor: pointer; }
-    .accept { background-color: green; color:white; }
-    .reject { background-color: red; color:white; }
-    .resolve { background-color: purple; color:white; }
+    * { margin:0; padding:0; box-sizing:border-box; font-family:"Poppins",sans-serif;}
+    body { padding:10px; }
+    h2 { text-align:center; margin-bottom:10px; }
+    #map { height:400px; margin-bottom:10px; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { border:1px solid #ccc; padding:6px; text-align:center; }
+    button { padding:5px 8px; border:none; border-radius:4px; cursor:pointer; }
+    .accept { background:green; color:white;}
+    .reject { background:red; color:white;}
+    .resolve { background:purple; color:white;}
+    .routeOption { background:#007bff; color:white; margin:2px;}
+    #routeInfo { margin-top:8px; font-size:14px; }
     #debugPanel {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      max-height: 200px;
-      overflow-y: auto;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      font-size: 12px;
-      z-index: 9999;
-      padding: 5px;
-      font-family: monospace;
+      position:fixed; bottom:0; left:0; width:100%;
+      max-height:150px; overflow-y:auto;
+      background:rgba(0,0,0,0.8); color:#0f0;
+      font-size:11px; padding:5px; font-family:monospace;
     }
   </style>
 </head>
@@ -34,221 +29,208 @@
 
 <h2>Emergency Response Dashboard</h2>
 <div id="map"></div>
+<div id="routeInfo"></div>
 
 <table>
-  <thead>
-    <tr><th>Name</th><th>Phone</th><th>Message</th><th>Action</th></tr>
-  </thead>
-  <tbody id="rows"></tbody>
+<thead>
+<tr><th>Name</th><th>Phone</th><th>Message</th><th>Action</th></tr>
+</thead>
+<tbody id="rows"></tbody>
 </table>
 
+<div id="debugPanel"></div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
-/* ---------------------- LOG FUNCTION ---------------------- */
+// LOG
 function log(msg){
-  console.log(msg);
   const panel = document.getElementById("debugPanel");
-  if(!panel) return;
   const time = new Date().toLocaleTimeString();
   panel.innerText += `[${time}] ${typeof msg==="object"?JSON.stringify(msg):msg}\n`;
   panel.scrollTop = panel.scrollHeight;
 }
 
-/* ---------------------- CONFIG ---------------------- */
+// CONFIG
 const WS_URL = "wss://campus-emergency-server.onrender.com";
-const userId = localStorage.getItem("userId");
 const role = localStorage.getItem("role");
 let ws;
 
-/* ---------------------- MAP SETUP ---------------------- */
-const map = L.map("map").setView([0,0], 2);
+// MAP
+const map = L.map("map").setView([0,0],2);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
 const emergencyMarkers = {};
 const responderMarkers = {};
-const routeLines = {};
-const activeAlerts = {};
+const routeLines = {}; // only selected route per alert
+let currentWatchId = null;
 
-const rows = document.getElementById("rows");
+// ROTATING ICON
+const responderIcon = L.divIcon({
+  html:`<div id="responderArrow" style="
+        width:30px;height:30px;
+        background:url('https://cdn-icons-png.flaticon.com/512/684/684908.png') no-repeat center;
+        background-size:contain;
+        transform:rotate(0deg);"></div>`,
+  className:"",
+  iconSize:[30,30]
+});
 
-/* ---------------------- WEBSOCKET ---------------------- */
+// WEBSOCKET
 function connectWS(){
   ws = new WebSocket(WS_URL);
 
-  ws.onopen = () => {
+  ws.onopen = ()=>{
     const token = localStorage.getItem("token");
-    if(token) ws.send(JSON.stringify({ token }));
-    log("WebSocket connected. Role: " + role);
+    if(token) ws.send(JSON.stringify({token}));
+    log("WS Connected");
   };
 
-  ws.onclose = () => {
-    log("WebSocket disconnected, retrying in 3s...");
-    setTimeout(connectWS, 3000);
+  ws.onclose = ()=>{
+    log("WS Reconnecting...");
+    setTimeout(connectWS,3000);
   };
 
   ws.onmessage = handleWSMessage;
 }
 connectWS();
 
-/* ---------------------- HANDLE WEBSOCKET MESSAGES ---------------------- */
+// HANDLE WS
 function handleWSMessage(e){
-  try {
-    const msg = JSON.parse(e.data);
+  const msg = JSON.parse(e.data);
 
-    // NEW ALERT
-    if(msg.type === "VALIDATE_ALERT"){
-      activeAlerts[msg.alertId] = msg;
+  if(msg.type==="VALIDATE_ALERT"){
+    addAlertToUI(msg);
+  }
 
-      // Map marker
-      if(!emergencyMarkers[msg.alertId]){
-        emergencyMarkers[msg.alertId] = L.marker([msg.latitude, msg.longitude])
-          .addTo(map)
-          .bindPopup(msg.name);
-      }
+  if(msg.type==="ALERT_RESOLVED"){
+    removeAlert(msg.alertId);
+  }
 
-      // Table row
-      let actionHTML = '';
-      if(role==='admin'){
-        actionHTML = `<button class="resolve" onclick="resolve(${msg.alertId})">Resolve</button>`;
-      } else {
-        actionHTML = `<button class="accept" onclick="respond(${msg.alertId}, true)">Accept</button>
-                      <button class="reject" onclick="respond(${msg.alertId}, false)">Reject</button>`;
-      }
-
-      if(!document.getElementById("a"+msg.alertId)){
-        const row = document.createElement("tr");
-        row.id = "a"+msg.alertId;
-        row.innerHTML = `
-          <td>${msg.name}</td>
-          <td>${msg.phone}</td>
-          <td>${msg.message||""}</td>
-          <td>${actionHTML}</td>
-        `;
-        rows.appendChild(row);
-      }
-    }
-
-    // ALERT RESOLVED
-    if(msg.type==="ALERT_RESOLVED"){
-      const row = document.getElementById("a"+msg.alertId);
-      if(row) row.style.opacity=0.5;
-      if(emergencyMarkers[msg.alertId]) map.removeLayer(emergencyMarkers[msg.alertId]);
-      if(responderMarkers[msg.alertId]) map.removeLayer(responderMarkers[msg.alertId]);
-      if(routeLines[msg.alertId]) map.removeLayer(routeLines[msg.alertId]);
-      delete activeAlerts[msg.alertId];
-    }
-
-    // EMERGENCY ASSIGNMENT (responder navigation)
-    if(msg.type==="EMERGENCY_ASSIGNMENT" && role!=="admin"){
-      activeAlerts[msg.alertId] = msg;
-      drawResponderRoute(msg.alertId, msg.latitude, msg.longitude);
-    }
-
-    // RESPONDER ACCEPTED (victim view)
-    if(msg.type==="RESPONDER_ACCEPTED"){
-      const { responder, alertId } = msg;
-      trackResponder(responder, alertId);
-    }
-
-  } catch(err){
-    log("WS message error: " + err);
+  if(msg.type==="EMERGENCY_ASSIGNMENT" && role!=="admin"){
+    startNavigation(msg.alertId, msg.latitude, msg.longitude);
   }
 }
 
-/* ---------------------- BUTTON ACTIONS ---------------------- */
-function resolve(alertId){
-  if(ws && ws.readyState===WebSocket.OPEN) ws.send(JSON.stringify({type:"RESOLVE_ALERT", alertId}));
-}
-
-function respond(alertId, accept){
-  if(ws && ws.readyState===WebSocket.OPEN)
-    ws.send(JSON.stringify({type:"RESPONDER_RESPONSE", alertId, accept}));
-  const row = document.getElementById("a"+alertId);
-  if(row) row.cells[3].innerHTML = accept ? "Accepted" : "Rejected";
-}
-
-/* ---------------------- SMOOTH MARKER ---------------------- */
-function smoothMoveMarker(marker, newLatLng){
-  const current = marker.getLatLng();
-  const steps = 20;
-  let step = 0;
-  const latStep = (newLatLng[0]-current.lat)/steps;
-  const lngStep = (newLatLng[1]-current.lng)/steps;
-
-  function animate(){
-    if(step>=steps) return;
-    marker.setLatLng([current.lat+latStep*step, current.lng+lngStep*step]);
-    step++;
-    requestAnimationFrame(animate);
+// ALERT UI
+function addAlertToUI(msg){
+  if(!emergencyMarkers[msg.alertId]){
+    emergencyMarkers[msg.alertId] =
+      L.marker([msg.latitude,msg.longitude]).addTo(map);
   }
-  animate();
+
+  const row = document.createElement("tr");
+  row.innerHTML=`
+    <td>${msg.name}</td>
+    <td>${msg.phone}</td>
+    <td>${msg.message||""}</td>
+    <td>
+      <button class="accept" onclick="respond(${msg.alertId},true)">Accept</button>
+      <button class="reject" onclick="respond(${msg.alertId},false)">Reject</button>
+    </td>
+  `;
+  document.getElementById("rows").appendChild(row);
 }
 
-/* ---------------------- DRAW ROUTE FOR RESPONDER ---------------------- */
-function drawResponderRoute(alertId, destLat, destLng){
-  if(!navigator.geolocation) return;
+function removeAlert(id){
+  if(emergencyMarkers[id]) map.removeLayer(emergencyMarkers[id]);
+  if(routeLines[id]) map.removeLayer(routeLines[id]);
+  delete routeLines[id];
+}
 
-  // Create marker if not exists
+// RESPOND
+function respond(alertId,accept){
+  ws.send(JSON.stringify({type:"RESPONDER_RESPONSE",alertId,accept}));
+}
+
+// NAVIGATION
+function startNavigation(alertId,destLat,destLng){
+
+  if(currentWatchId) navigator.geolocation.clearWatch(currentWatchId);
+
   if(!responderMarkers[alertId]){
-    responderMarkers[alertId] = L.marker([0,0], {icon:L.icon({iconUrl:"responder.png",iconSize:[32,32]})}).addTo(map);
+    responderMarkers[alertId] =
+      L.marker([0,0],{icon:responderIcon}).addTo(map);
   }
 
-  function updateRoute(pos){
-    const start = [pos.coords.latitude, pos.coords.longitude];
-    const end = [destLat, destLng];
+  currentWatchId = navigator.geolocation.watchPosition(pos=>{
+    const startLat = pos.coords.latitude;
+    const startLng = pos.coords.longitude;
 
-    fetch(`https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`)
-      .then(resp=>resp.json())
-      .then(data=>{
-        if(!data.routes || data.routes.length===0) return;
-        const coords = data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+    updateHeading(startLat,startLng,destLat,destLng);
+    fetchRoutes(alertId,startLat,startLng,destLat,destLng);
 
-        // Smoothly move marker
-        smoothMoveMarker(responderMarkers[alertId], start);
+    ws.send(JSON.stringify({
+      type:"LOCATION_UPDATE",
+      alertId,
+      latitude:startLat,
+      longitude:startLng
+    }));
 
-        // Update polyline
+  },err=>console.error(err),{enableHighAccuracy:true});
+}
+
+// FETCH MULTIPLE ROUTES
+function fetchRoutes(alertId,sLat,sLng,dLat,dLng){
+
+  fetch(`https://router.project-osrm.org/route/v1/driving/${sLng},${sLat};${dLng},${dLat}?alternatives=true&overview=full&geometries=geojson`)
+  .then(r=>r.json())
+  .then(data=>{
+    if(!data.routes) return;
+
+    const routeDiv = document.getElementById("routeInfo");
+    routeDiv.innerHTML="";
+
+    data.routes.forEach((route,index)=>{
+
+      const coords = route.geometry.coordinates.map(c=>[c[1],c[0]]);
+      const distance = (route.distance/1000).toFixed(2);
+      const duration = (route.duration/60).toFixed(1);
+
+      const btn = document.createElement("button");
+      btn.className="routeOption";
+      btn.innerText=`Route ${index+1} - ${distance} km - ${duration} min`;
+
+      btn.onclick=()=>{
+        // Remove previous route
         if(routeLines[alertId]) map.removeLayer(routeLines[alertId]);
-        routeLines[alertId] = L.polyline(coords, {color:"blue"}).addTo(map);
-      })
-      .catch(err=>console.error(err));
-  }
 
-  // Initial update
-  navigator.geolocation.getCurrentPosition(updateRoute, err=>console.error(err), {enableHighAccuracy:true});
+        routeLines[alertId] = L.polyline(coords,{color:"blue"}).addTo(map);
+        map.fitBounds(routeLines[alertId].getBounds());
 
-  // Watch position
-  navigator.geolocation.watchPosition(pos=>{
-    updateRoute(pos);
-    if(ws && ws.readyState===WebSocket.OPEN){
-      ws.send(JSON.stringify({type:"LOCATION_UPDATE", latitude:pos.coords.latitude, longitude:pos.coords.longitude}));
-    }
-  }, err=>console.error(err), {enableHighAccuracy:true});
+        // Clear buttons after selection
+        routeDiv.innerHTML=`Selected Route: ${distance} km - ${duration} min`;
+
+        // Send selection to server
+        ws.send(JSON.stringify({
+          type:"SELECTED_ROUTE",
+          alertId,
+          routeIndex:index,
+          distance,
+          duration,
+          geometry:coords
+        }));
+
+        log(`Selected route ${index+1} for alert ${alertId}`);
+      };
+
+      routeDiv.appendChild(btn);
+    });
+  });
 }
 
-/* ---------------------- TRACK RESPONDER FOR VICTIM ---------------------- */
-function trackResponder(responder, alertId){
-  const start = [responder.lat, responder.lng];
-  const end = [emergencyMarkers[alertId].getLatLng().lat, emergencyMarkers[alertId].getLatLng().lng];
+// ROTATION 
+function updateHeading(lat1,lng1,lat2,lng2){
+  const dLon = (lng2-lng1);
+  const y = Math.sin(dLon)*Math.cos(lat2);
+  const x = Math.cos(lat1)*Math.sin(lat2)-
+            Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon);
+  let brng = Math.atan2(y,x)*180/Math.PI;
+  brng = (brng+360)%360;
 
-  // Create responder marker if needed
-  if(!responderMarkers[responder.id]){
-    responderMarkers[responder.id] = L.marker(start, {icon:L.icon({iconUrl:"responder.png",iconSize:[32,32]})}).addTo(map);
-  }
-
-  // Draw route
-  fetch(`https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`)
-    .then(resp=>resp.json())
-    .then(data=>{
-      if(!data.routes || data.routes.length===0) return;
-      const coords = data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
-      if(routeLines[responder.id]) map.removeLayer(routeLines[responder.id]);
-      routeLines[responder.id] = L.polyline(coords, {color:"blue"}).addTo(map);
-    })
-    .catch(err=>console.error(err));
+  const arrow = document.getElementById("responderArrow");
+  if(arrow) arrow.style.transform=`rotate(${brng}deg)`;
 }
-
 </script>
-
-<div id="debugPanel"></div>
 </body>
 </html>
