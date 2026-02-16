@@ -80,20 +80,27 @@ const responderIcon = L.divIcon({
 function connectWS(){
   ws = new WebSocket(WS_URL);
 
-  ws.onopen = ()=>{
-    const token = localStorage.getItem("token");
-    if(token) ws.send(JSON.stringify({token}));
-     if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(pos => {
-      ws.send(JSON.stringify({
-        type: "LOCATION_UPDATE",
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude
-      }));
-    }, err => console.error(err), {enableHighAccuracy:true});
-    log("WS Connected");
-    log(role);
-  };
+ ws.onopen = () => {
+  const token = localStorage.getItem("token");
+  if(token) ws.send(JSON.stringify({ token }));
+
+  log("WS Connected");
+  log("Role: " + role);
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        ws.send(JSON.stringify({
+          type: "LOCATION_UPDATE",
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude
+        }));
+      },
+      err => console.error(err),
+      { enableHighAccuracy: true }
+    );
+  }
+};
 
   ws.onclose = ()=>{
     log("WS Reconnecting...");
