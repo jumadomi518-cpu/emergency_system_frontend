@@ -16,12 +16,16 @@
     .resolve { background-color: purple; color:white; }
     #debugPanel {
       position: fixed;
-      bottom: 0; left: 0;
-      width: 100%; max-height: 200px;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      max-height: 200px;
       overflow-y: auto;
       background: rgba(0,0,0,0.7);
-      color: white; font-size: 12px;
-      z-index: 9999; padding: 5px;
+      color: white;
+      font-size: 12px;
+      z-index: 9999;
+      padding: 5px;
       font-family: monospace;
     }
   </style>
@@ -40,24 +44,23 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/********** LOGGING **********/
+/* ---------------------- LOG FUNCTION ---------------------- */
 function log(msg){
   console.log(msg);
   const panel = document.getElementById("debugPanel");
   if(!panel) return;
   const time = new Date().toLocaleTimeString();
-  panel.innerText += `[${time}] ${typeof msg === "object" ? JSON.stringify(msg) : msg}\n`;
+  panel.innerText += `[${time}] ${typeof msg==="object"?JSON.stringify(msg):msg}\n`;
   panel.scrollTop = panel.scrollHeight;
 }
 
-/********** CONFIG **********/
+/* ---------------------- CONFIG ---------------------- */
 const WS_URL = "wss://campus-emergency-server.onrender.com";
 const userId = localStorage.getItem("userId");
 const role = localStorage.getItem("role");
-
 let ws;
 
-/********** MAP SETUP **********/
+/* ---------------------- MAP SETUP ---------------------- */
 const map = L.map("map").setView([0,0], 2);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
@@ -66,208 +69,180 @@ const responderMarkers = {};
 const routeLines = {};
 const activeAlerts = {};
 
-let victimMarker = null; // smooth victim tracking
+const rows = document.getElementById("rows");
 
-/********** WEBSOCKET **********/
+/* ---------------------- WEBSOCKET ---------------------- */
 function connectWS(){
   ws = new WebSocket(WS_URL);
+
   ws.onopen = () => {
     const token = localStorage.getItem("token");
     if(token) ws.send(JSON.stringify({ token }));
-    log("WebSocket connected, role: " + role);
+    log("WebSocket connected. Role: " + role);
   };
+
   ws.onclose = () => {
-    log("WebSocket disconnected, retrying in 3s");
+    log("WebSocket disconnected, retrying in 3s...");
     setTimeout(connectWS, 3000);
   };
+
   ws.onmessage = handleWSMessage;
 }
 connectWS();
 
-/********** LOGICAL FUNCTIONS **********/
-function resolve(alertId){
-  if(ws && ws.readyState === WebSocket.OPEN)
-    ws.send(JSON.stringify({type:"RESOLVE_ALERT", alertId}));
-}
-
-function respond(alertId, accept){
-  if(ws && ws.readyState === WebSocket.OPEN)
-    ws.send(JSON.stringify({type:"RESPONDER_RESPONSE", alertId, accept}));
-  const row = document.getElementById("a"+alertId);
-  if(row) row.cells[3].innerHTML = accept ? "Accepted" : "Rejected";
-}
-
-/********** SMOOTH MOVE HELPER **********/
-function smoothMoveMarker(marker, newLatLng){
-  if(!marker) return;
-  const currentLatLng = marker.getLatLng();
-  const steps = 20;
-  let step = 0;
-  const latStep = (newLatLng[0] - currentLatLng.lat)/steps;
-  const lngStep = (newLatLng[1] - currentLatLng.lng)/steps;
-
-  function animateStep(){
-    if(step>=steps) return;
-    marker.setLatLng([
-      currentLatLng.lat + latStep*step,
-      currentLatLng.lng + lngStep*step
-    ]);
-    step++;
-    requestAnimationFrame(animateStep);
-  }
-  animateStep();
-}
-
-/********** HANDLE WS MESSAGES **********/
+/* ---------------------- HANDLE WEBSOCKET MESSAGES ---------------------- */
 function handleWSMessage(e){
-  try{
+  try {
     const msg = JSON.parse(e.data);
 
-    if(msg.type==="VALIDATE_ALERT"){
-      const a = msg;
-      log(a);
-      activeAlerts[a.alertId] = a;
+    // NEW ALERT
+    if(msg.type === "VALIDATE_ALERT"){
+      activeAlerts[msg.alertId] = msg;
 
       // Map marker
-      emergencyMarkers[a.alertId] = L.marker([a.latitude,a.longitude]).addTo(map).bindPopup(a.name);
-      map.setView([a.latitude,a.longitude], 15);
+      if(!emergencyMarkers[msg.alertId]){
+        emergencyMarkers[msg.alertId] = L.marker([msg.latitude, msg.longitude])
+          .addTo(map)
+          .bindPopup(msg.name);
+      }
 
-      // Table
-      let actionHTML = role==='admin' 
-        ? `<button class="resolve" onclick="resolve(${a.alertId})">Resolve</button>`
-        : `<button class="accept" onclick="respond(${a.alertId},true)">Accept</button>
-           <button class="reject" onclick="respond(${a.alertId},false)">Reject</button>`;
-      if(!document.getElementById("a"+a.alertId)){
-        document.getElementById("rows").innerHTML += `
-          <tr id="a${a.alertId}">
-            <td>${a.name}</td>
-            <td>${a.phone}</td>
-            <td>${a.message||""}</td>
-            <td>${actionHTML}</td>
-          </tr>`;
+      // Table row
+      let actionHTML = '';
+      if(role==='admin'){
+        actionHTML = `<button class="resolve" onclick="resolve(${msg.alertId})">Resolve</button>`;
+      } else {
+        actionHTML = `<button class="accept" onclick="respond(${msg.alertId}, true)">Accept</button>
+                      <button class="reject" onclick="respond(${msg.alertId}, false)">Reject</button>`;
+      }
+
+      if(!document.getElementById("a"+msg.alertId)){
+        const row = document.createElement("tr");
+        row.id = "a"+msg.alertId;
+        row.innerHTML = `
+          <td>${msg.name}</td>
+          <td>${msg.phone}</td>
+          <td>${msg.message||""}</td>
+          <td>${actionHTML}</td>
+        `;
+        rows.appendChild(row);
       }
     }
 
+    // ALERT RESOLVED
     if(msg.type==="ALERT_RESOLVED"){
       const row = document.getElementById("a"+msg.alertId);
-      if(row) row.style.opacity = 0.5;
+      if(row) row.style.opacity=0.5;
       if(emergencyMarkers[msg.alertId]) map.removeLayer(emergencyMarkers[msg.alertId]);
       if(responderMarkers[msg.alertId]) map.removeLayer(responderMarkers[msg.alertId]);
       if(routeLines[msg.alertId]) map.removeLayer(routeLines[msg.alertId]);
       delete activeAlerts[msg.alertId];
     }
 
-    // Responder assigned to alert
-    if(msg.type==="EMERGENCY_ASSIGNMENT" && role!=='admin'){
+    // EMERGENCY ASSIGNMENT (responder navigation)
+    if(msg.type==="EMERGENCY_ASSIGNMENT" && role!=="admin"){
       activeAlerts[msg.alertId] = msg;
       drawResponderRoute(msg.alertId, msg.latitude, msg.longitude);
     }
 
-    // Responder accepted (victim view)
+    // RESPONDER ACCEPTED (victim view)
     if(msg.type==="RESPONDER_ACCEPTED"){
-      trackResponder(msg.responder, msg.alertId);
+      const { responder, alertId } = msg;
+      trackResponder(responder, alertId);
     }
 
-  }catch(err){ log("WS message error:"+err);}
-}
-
-/********** VICTIM LOCATION TRACKING **********/
-let watchId = null;
-
-function startVictimTracking() {
-  if(!navigator.geolocation) return;
-  if(watchId) return;
-
-  watchId = navigator.geolocation.watchPosition(pos=>{
-    const latlng = [pos.coords.latitude, pos.coords.longitude];
-
-    if(!victimMarker){
-      victimMarker = L.marker(latlng, {icon:L.icon({iconUrl:"victim.png",iconSize:[32,32]})})
-        .addTo(map)
-        .bindPopup("Your location");
-    } else {
-      smoothMoveMarker(victimMarker, latlng);
-    }
-
-    // Center on user without locking map (like professional apps)
-    map.panTo(latlng, {animate:true, duration:0.5});
-
-    // Send location to WS
-    if(ws && ws.readyState===WebSocket.OPEN){
-      ws.send(JSON.stringify({type:"LOCATION_UPDATE", latitude:latlng[0], longitude:latlng[1]}));
-    }
-  }, err=>log(err), {enableHighAccuracy:true});
-}
-
-/********** TRACK RESPONDER **********/
-async function drawResponderRoute(alertId, destLat, destLng){
-  if(!navigator.geolocation) return;
-
-  // Create marker once
-  if(!responderMarkers[alertId]){
-    responderMarkers[alertId] = L.marker([0,0], {icon:L.icon({iconUrl:"responder.png",iconSize:[32,32]})})
-      .addTo(map);
+  } catch(err){
+    log("WS message error: " + err);
   }
+}
 
-  let lastPos = null;
+/* ---------------------- BUTTON ACTIONS ---------------------- */
+function resolve(alertId){
+  if(ws && ws.readyState===WebSocket.OPEN) ws.send(JSON.stringify({type:"RESOLVE_ALERT", alertId}));
+}
+
+function respond(alertId, accept){
+  if(ws && ws.readyState===WebSocket.OPEN)
+    ws.send(JSON.stringify({type:"RESPONDER_RESPONSE", alertId, accept}));
+  const row = document.getElementById("a"+alertId);
+  if(row) row.cells[3].innerHTML = accept ? "Accepted" : "Rejected";
+}
+
+/* ---------------------- SMOOTH MARKER ---------------------- */
+function smoothMoveMarker(marker, newLatLng){
+  const current = marker.getLatLng();
+  const steps = 20;
+  let step = 0;
+  const latStep = (newLatLng[0]-current.lat)/steps;
+  const lngStep = (newLatLng[1]-current.lng)/steps;
+
+  function animate(){
+    if(step>=steps) return;
+    marker.setLatLng([current.lat+latStep*step, current.lng+lngStep*step]);
+    step++;
+    requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+/* ---------------------- DRAW ROUTE FOR RESPONDER ---------------------- */
+function drawResponderRoute(alertId, destLat, destLng){
+  if(!navigator.geolocation) return;
+
+  // Create marker if not exists
+  if(!responderMarkers[alertId]){
+    responderMarkers[alertId] = L.marker([0,0], {icon:L.icon({iconUrl:"responder.png",iconSize:[32,32]})}).addTo(map);
+  }
 
   function updateRoute(pos){
     const start = [pos.coords.latitude, pos.coords.longitude];
     const end = [destLat, destLng];
 
-    // Move marker smoothly
-    if(lastPos){
-      smoothMoveMarker(responderMarkers[alertId], start);
-    } else {
-      responderMarkers[alertId].setLatLng(start);
-    }
-    lastPos = start;
-
-    // Fetch polyline
     fetch(`https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`)
-      .then(r=>r.json())
+      .then(resp=>resp.json())
       .then(data=>{
         if(!data.routes || data.routes.length===0) return;
         const coords = data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+
+        // Smoothly move marker
+        smoothMoveMarker(responderMarkers[alertId], start);
+
+        // Update polyline
         if(routeLines[alertId]) map.removeLayer(routeLines[alertId]);
-        routeLines[alertId] = L.polyline(coords,{color:"blue"}).addTo(map);
+        routeLines[alertId] = L.polyline(coords, {color:"blue"}).addTo(map);
       })
       .catch(err=>console.error(err));
-
-    // Send live location to WS
-    if(ws && ws.readyState===WebSocket.OPEN){
-      ws.send(JSON.stringify({type:"LOCATION_UPDATE", latitude:start[0], longitude:start[1]}));
-    }
   }
 
-  // Initial fetch
+  // Initial update
   navigator.geolocation.getCurrentPosition(updateRoute, err=>console.error(err), {enableHighAccuracy:true});
+
   // Watch position
-  navigator.geolocation.watchPosition(updateRoute, err=>console.error(err), {enableHighAccuracy:true});
+  navigator.geolocation.watchPosition(pos=>{
+    updateRoute(pos);
+    if(ws && ws.readyState===WebSocket.OPEN){
+      ws.send(JSON.stringify({type:"LOCATION_UPDATE", latitude:pos.coords.latitude, longitude:pos.coords.longitude}));
+    }
+  }, err=>console.error(err), {enableHighAccuracy:true});
 }
 
-/********** TRACK ANY OTHER RESPONDER (victim view) **********/
-async function trackResponder(responder, alertId){
-  if(!emergencyMarkers[alertId]) return;
-
-  const start = [responder.lat,responder.lng];
+/* ---------------------- TRACK RESPONDER FOR VICTIM ---------------------- */
+function trackResponder(responder, alertId){
+  const start = [responder.lat, responder.lng];
   const end = [emergencyMarkers[alertId].getLatLng().lat, emergencyMarkers[alertId].getLatLng().lng];
 
-  // Marker
+  // Create responder marker if needed
   if(!responderMarkers[responder.id]){
-    responderMarkers[responder.id] = L.marker(start,{icon:L.icon({iconUrl:"responder.png",iconSize:[32,32]})}).addTo(map);
-  } else {
-    smoothMoveMarker(responderMarkers[responder.id], start);
+    responderMarkers[responder.id] = L.marker(start, {icon:L.icon({iconUrl:"responder.png",iconSize:[32,32]})}).addTo(map);
   }
 
-  // Route
+  // Draw route
   fetch(`https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`)
-    .then(r=>r.json())
+    .then(resp=>resp.json())
     .then(data=>{
       if(!data.routes || data.routes.length===0) return;
       const coords = data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
       if(routeLines[responder.id]) map.removeLayer(routeLines[responder.id]);
-      routeLines[responder.id] = L.polyline(coords,{color:"blue"}).addTo(map);
+      routeLines[responder.id] = L.polyline(coords, {color:"blue"}).addTo(map);
     })
     .catch(err=>console.error(err));
 }
@@ -275,6 +250,5 @@ async function trackResponder(responder, alertId){
 </script>
 
 <div id="debugPanel"></div>
-
 </body>
 </html>
