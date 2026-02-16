@@ -108,36 +108,56 @@ function trigger() {
 
 let victimMarker = null;
 let watchId = null;
+let firstUpdate = true;
+
 function start() {
   if (watchId) return;
 
-  watchId = navigator.geolocation.watchPosition(pos => {
-    const { latitude, longitude } = pos.coords;
-    document.getElementById("statusText").innerText = "ON";
+  watchId = navigator.geolocation.watchPosition(
+    pos => {
+      const { latitude, longitude } = pos.coords;
+      const newLatLng = [latitude, longitude];
 
-    const newLatLng = [latitude, longitude];
+      document.getElementById("statusText").innerText = "ON";
+      console.log("Victim coords:", latitude, longitude);
 
-    // SHOW victim location on map
-if (!victimMarker) {
-  victimMarker = L.marker(newLatLng)
-    .addTo(map)
-    .bindPopup("Your current location")
-    .openPopup();
-} else {
-  smoothMoveMarker(victimMarker, newLatLng);
-}
+   
+      if (!victimMarker) {
+        victimMarker = L.marker(newLatLng)
+          .addTo(map)
+          .bindPopup("Your current location")
+          .openPopup();
+      } else {
+        //Move marker smoothly
+        smoothMoveMarker(victimMarker, newLatLng);
+      }
 
-map.setView(newLatLng, 15);
+      // Focus map on current location only the first time
+      if (firstUpdate) {
+        map.setView(newLatLng, 15);
+        firstUpdate = false;
+      }
 
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ 
-        type: "LOCATION_UPDATE", 
-        latitude, 
-        longitude 
-      }));
+      // Send location updates to server
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: "LOCATION_UPDATE",
+          latitude,
+          longitude
+        }));
+      }
+
+    },
+    err => {
+      console.error("Geolocation error:", err);
+      alert("Unable to get location: " + err.message);
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 1000,
+      timeout: 10000
     }
-
-  }, err => console.log(err), { enableHighAccuracy: true });
+  );
 }
 
 function stop() {
