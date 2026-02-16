@@ -83,23 +83,8 @@ function connectWS(){
  ws.onopen = () => {
   const token = localStorage.getItem("token");
   if(token) ws.send(JSON.stringify({ token }));
-
   log("WS Connected");
   log("Role: " + role);
-
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        ws.send(JSON.stringify({
-          type: "LOCATION_UPDATE",
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude
-        }));
-      },
-      err => console.error(err),
-      { enableHighAccuracy: true }
-    );
-  }
 };
 
   ws.onclose = ()=>{
@@ -114,6 +99,25 @@ connectWS();
 // HANDLE WS
 function handleWSMessage(e){
   const msg = JSON.parse(e.data);
+
+ if (msg.type === "AUTH_SUCCESS") {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          ws.send(JSON.stringify({
+            type: "LOCATION_UPDATE",
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude
+          }));
+          log(`Initial location sent: ${pos.coords.latitude}, ${pos.coords.longitude}`);
+        },
+        err => console.error(err),
+        { enableHighAccuracy: true }
+      );
+    }
+  }
+
+
 
   if(msg.type==="VALIDATE_ALERT"){
     addAlertToUI(msg);
