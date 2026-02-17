@@ -91,15 +91,12 @@ let isAuthenticated = false;
     return;
   }
 
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    alert("WebSocket not connected.");
-    return;
-  }
 
 
   navigator.geolocation.getCurrentPosition(pos => {
     const latitude = pos.coords.latitude;
     const longitude = pos.coords.longitude;
+    log(latitude, longitude);
     const msg = document.getElementById("msg");
     const message = msg.value;
     const type = document.querySelector('input[name="type"]:checked')?.value;
