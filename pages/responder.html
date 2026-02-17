@@ -43,7 +43,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-// LOG
+// DEBUG LOG
 function log(msg){
   const panel = document.getElementById("debugPanel");
   const time = new Date().toLocaleTimeString();
@@ -51,10 +51,13 @@ function log(msg){
   panel.scrollTop = panel.scrollHeight;
 }
 
+
 // CONFIG
 const WS_URL = "wss://campus-emergency-server.onrender.com";
 const role = localStorage.getItem("role");
 let ws;
+let activeAssignment = null;
+
 
 // MAP
 const map = L.map("map").setView([0,0],2);
@@ -62,10 +65,11 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
 const emergencyMarkers = {};
 const responderMarkers = {};
-const routeLines = {}; // only selected route per alert
+const routeLines = {};
 let currentWatchId = null;
 
-// ROTATING ICON
+
+// RESPONDER ICON
 const responderIcon = L.divIcon({
   html:`<div id="responderArrow" style="
         width:30px;height:30px;
@@ -76,16 +80,17 @@ const responderIcon = L.divIcon({
   iconSize:[30,30]
 });
 
-// WEBSOCKET
+
+// CONNECT WEBSOCKET
 function connectWS(){
   ws = new WebSocket(WS_URL);
 
- ws.onopen = () => {
-  const token = localStorage.getItem("token");
-  if(token) ws.send(JSON.stringify({ token }));
-  log("WS Connected");
-  log("Role: " + role);
-};
+  ws.onopen = () => {
+    const token = localStorage.getItem("token");
+    if(token) ws.send(JSON.stringify({ token }));
+    log("WS Connected");
+    log("Role: " + role);
+  };
 
   ws.onclose = ()=>{
     log("WS Reconnecting...");
@@ -96,75 +101,86 @@ function connectWS(){
 }
 connectWS();
 
-// HANDLE WS
+// HANDLE MESSAGES
 function handleWSMessage(e){
   const msg = JSON.parse(e.data);
+  log(msg);
 
- if (msg.type === "AUTH_SUCCESS") {
+  // After authentication → send initial location
+  if (msg.type === "AUTH_SUCCESS") {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          ws.send(JSON.stringify({
-            type: "LOCATION_UPDATE",
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude
-          }));
-          log(`Initial location sent: ${pos.coords.latitude}, ${pos.coords.longitude}`);
-        },
-        err => console.error(err),
-        { enableHighAccuracy: true }
-      );
+      navigator.geolocation.getCurrentPosition(pos => {
+        ws.send(JSON.stringify({
+          type: "LOCATION_UPDATE",
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude
+        }));
+      }, console.error, { enableHighAccuracy: true });
     }
   }
 
-
-
-  if(msg.type==="VALIDATE_ALERT"){
-    addAlertToUI(msg);
+  // Only responders handle assignments
+  if(msg.type === "EMERGENCY_ASSIGNMENT" && role !== "user"){
+    showAssignmentUI(msg);
   }
 
-  if(msg.type==="ALERT_RESOLVED"){
+  // If victim gets responder accepted
+  if(msg.type === "RESPONDER_ACCEPTED"){
+    log("Responder accepted alert " + msg.alertId);
+  }
+
+  if(msg.type === "ALERT_RESOLVED"){
     removeAlert(msg.alertId);
-  }
-
-  if(msg.type==="EMERGENCY_ASSIGNMENT" && role!=="admin"){
-    startNavigation(msg.alertId, msg.latitude, msg.longitude);
   }
 }
 
-// ALERT UI
-function addAlertToUI(msg){
+
+// SHOW ASSIGNMENT UI
+function showAssignmentUI(msg){
+
+  activeAssignment = msg;
+
+  // Add marker for emergency
   if(!emergencyMarkers[msg.alertId]){
     emergencyMarkers[msg.alertId] =
       L.marker([msg.latitude,msg.longitude]).addTo(map);
   }
 
   const row = document.createElement("tr");
-  row.innerHTML=`
-    <td>${msg.name}</td>
-    <td>${msg.phone}</td>
-    <td>${msg.message||""}</td>
+  row.innerHTML = `
+    <td>${msg.victim?.name || "Unknown"}</td>
+    <td>${msg.victim?.phone || "Unknown"}</td>
+    <td>${msg.message}</td>
     <td>
-      <button class="accept" onclick="respond(${msg.alertId},true)">Accept</button>
-      <button class="reject" onclick="respond(${msg.alertId},false)">Reject</button>
+      <button onclick="respondToAssignment(${msg.alertId}, true)">Accept</button>
+      <button onclick="respondToAssignment(${msg.alertId}, false)">Reject</button>
     </td>
   `;
+
   document.getElementById("rows").appendChild(row);
 }
 
-function removeAlert(id){
-  if(emergencyMarkers[id]) map.removeLayer(emergencyMarkers[id]);
-  if(routeLines[id]) map.removeLayer(routeLines[id]);
-  delete routeLines[id];
+// RESPOND TO ASSIGNMENT
+function respondToAssignment(alertId, accept){
+
+  ws.send(JSON.stringify({
+    type:"RESPONDER_RESPONSE",
+    alertId,
+    accept
+  }));
+
+  if(accept && activeAssignment){
+    startNavigation(
+      alertId,
+      activeAssignment.latitude,
+      activeAssignment.longitude
+    );
+  }
 }
 
-// RESPOND
-function respond(alertId,accept){
-  ws.send(JSON.stringify({type:"RESPONDER_RESPONSE",alertId,accept}));
-}
 
-// NAVIGATION
-function startNavigation(alertId,destLat,destLng){
+// START NAVIGATION
+function startNavigation(alertId, destLat, destLng){
 
   if(currentWatchId) navigator.geolocation.clearWatch(currentWatchId);
 
@@ -174,8 +190,11 @@ function startNavigation(alertId,destLat,destLng){
   }
 
   currentWatchId = navigator.geolocation.watchPosition(pos=>{
+
     const startLat = pos.coords.latitude;
     const startLng = pos.coords.longitude;
+
+    responderMarkers[alertId].setLatLng([startLat,startLng]);
 
     updateHeading(startLat,startLng,destLat,destLng);
     fetchRoutes(alertId,startLat,startLng,destLat,destLng);
@@ -187,10 +206,11 @@ function startNavigation(alertId,destLat,destLng){
       longitude:startLng
     }));
 
-  },err=>console.error(err),{enableHighAccuracy:true});
+  }, console.error, { enableHighAccuracy:true });
 }
 
-// FETCH MULTIPLE ROUTES
+
+// FETCH ROUTES (OSRM)
 function fetchRoutes(alertId,sLat,sLng,dLat,dLng){
 
   fetch(`https://router.project-osrm.org/route/v1/driving/${sLng},${sLat};${dLng},${dLat}?alternatives=true&overview=full&geometries=geojson`)
@@ -208,30 +228,23 @@ function fetchRoutes(alertId,sLat,sLng,dLat,dLng){
       const duration = (route.duration/60).toFixed(1);
 
       const btn = document.createElement("button");
-      btn.className="routeOption";
       btn.innerText=`Route ${index+1} - ${distance} km - ${duration} min`;
 
       btn.onclick=()=>{
-        // Remove previous route
         if(routeLines[alertId]) map.removeLayer(routeLines[alertId]);
 
         routeLines[alertId] = L.polyline(coords,{color:"blue"}).addTo(map);
         map.fitBounds(routeLines[alertId].getBounds());
 
-        // Clear buttons after selection
         routeDiv.innerHTML=`Selected Route: ${distance} km - ${duration} min`;
 
-        // Send selection to server
         ws.send(JSON.stringify({
           type:"SELECTED_ROUTE",
           alertId,
           routeIndex:index,
           distance,
-          duration,
-          geometry:coords
+          duration
         }));
-
-        log(`Selected route ${index+1} for alert ${alertId}`);
       };
 
       routeDiv.appendChild(btn);
@@ -239,7 +252,8 @@ function fetchRoutes(alertId,sLat,sLng,dLat,dLng){
   });
 }
 
-// ROTATION 
+
+// ROTATE ICON
 function updateHeading(lat1,lng1,lat2,lng2){
   const dLon = (lng2-lng1);
   const y = Math.sin(dLon)*Math.cos(lat2);
@@ -250,6 +264,14 @@ function updateHeading(lat1,lng1,lat2,lng2){
 
   const arrow = document.getElementById("responderArrow");
   if(arrow) arrow.style.transform=`rotate(${brng}deg)`;
+}
+
+
+// REMOVE ALERT
+function removeAlert(id){
+  if(emergencyMarkers[id]) map.removeLayer(emergencyMarkers[id]);
+  if(routeLines[id]) map.removeLayer(routeLines[id]);
+  delete routeLines[id];
 }
 </script>
 </body>
