@@ -291,33 +291,5 @@ async function handleWSMessage(event){
   }
 }
 
-// TRACK RESPONDER (victim view)
-  async function trackResponder(responder, alertId) {
-  if (!emergencyMarker) return;
-
-  const start = [responder.lat, responder.lng];
-  const end = [
-    emergencyMarker.getLatLng().lat,
-    emergencyMarker.getLatLng().lng
-  ];
-
-  const url = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`;
-  const resp = await fetch(url);
-  const data = await resp.json();
-  if (!data.routes || data.routes.length === 0) return;
-
-  const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
-
-  // Create marker
-  if (!responderMarkers[responder.id]) {
-    responderMarkers[responder.id] = L.marker(start, {
-      icon: L.icon({ iconUrl: "responder.png", iconSize: [32, 32] })
-    }).addTo(map);
-  }
-
-  // Draw route
-  if (routeLines[responder.id]) map.removeLayer(routeLines[responder.id]);
-  routeLines[responder.id] = L.polyline(coords, { color: "blue" }).addTo(map);
-}
 
 

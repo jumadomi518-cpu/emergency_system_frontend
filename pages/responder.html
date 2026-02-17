@@ -254,17 +254,35 @@ function fetchRoutes(alertId,sLat,sLng,dLat,dLng){
 }
 
 
-// ROTATE ICON
-function updateHeading(lat1,lng1,lat2,lng2){
-  const dLon = (lng2-lng1);
-  const y = Math.sin(dLon)*Math.cos(lat2);
-  const x = Math.cos(lat1)*Math.sin(lat2)-
-            Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon);
-  let brng = Math.atan2(y,x)*180/Math.PI;
-  brng = (brng+360)%360;
+function updateHeading(currentLat, currentLng, destLat, destLng) {
 
+  // Convert degrees to radians
+  const toRad = deg => deg * Math.PI / 180;
+  const toDeg = rad => rad * 180 / Math.PI;
+
+  const φ1 = toRad(currentLat);
+  const φ2 = toRad(destLat);
+  const Δλ = toRad(destLng - currentLng);
+
+  // Bearing calculation
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x =
+    Math.cos(φ1) * Math.sin(φ2) -
+    Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+
+  let bearing = Math.atan2(y, x);
+
+  // Convert radians → degrees
+  bearing = toDeg(bearing);
+
+  // Normalize to 0–360
+  bearing = (bearing + 360) % 360;
+
+  // Rotate arrow
   const arrow = document.getElementById("responderArrow");
-  if(arrow) arrow.style.transform=`rotate(${brng}deg)`;
+  if (arrow) {
+    arrow.style.transform = `rotate(${bearing}deg)`;
+  }
 }
 
 
