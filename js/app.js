@@ -96,7 +96,8 @@ let isAuthenticated = false;
   navigator.geolocation.getCurrentPosition(pos => {
     const latitude = pos.coords.latitude;
     const longitude = pos.coords.longitude;
-    log(latitude, longitude);
+    log(latitude);
+    log(longitude)
     const msg = document.getElementById("msg");
     const message = msg.value;
     const type = document.querySelector('input[name="type"]:checked')?.value;
