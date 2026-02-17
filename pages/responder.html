@@ -122,6 +122,7 @@ function handleWSMessage(e){
   // Only responders handle assignments
   if(msg.type === "EMERGENCY_ASSIGNMENT" && role !== "user"){
     showAssignmentUI(msg);
+    log("Emergency Assignment received " + msg);
   }
 
   // If victim gets responder accepted
