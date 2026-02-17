@@ -57,6 +57,7 @@ function connectWebSocket() {
     const token = localStorage.getItem("token");
     if(token) ws.send(JSON.stringify({ token }));
     log("WebSocket connected");
+   start();
   });
 
   ws.addEventListener("close", () => {
