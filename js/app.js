@@ -78,19 +78,36 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 let emergencyMarker = null;
 const responderMarkers = {};
 const routeLines = {};
+let isAuthenticated = false;
 
 //  EMERGENCY BUTTON 
-function trigger() {
+ function trigger() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    alert("WebSocket not connected yet, try again in a moment.");
+    return;
+  }
+
+ if (!isAuthenticated) {
+    alert("Still authenticating. Please wait.");
+    return;
+  }
+
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    alert("WebSocket not connected.");
+    return;
+  }
+
+
   navigator.geolocation.getCurrentPosition(pos => {
     const latitude = pos.coords.latitude;
     const longitude = pos.coords.longitude;
     const msg = document.getElementById("msg");
     const message = msg.value;
     const type = document.querySelector('input[name="type"]:checked')?.value;
-     if (type === undefined) {
-       alert("Select the type of Emergency by checking one of the input above.");
-       return;
-     }
+    if (!type) {
+      alert("Select the type of Emergency by checking one of the input above.");
+      return;
+    }
 
     ws.send(JSON.stringify({
       type: "EMERGENCY",
@@ -102,7 +119,6 @@ function trigger() {
     alert("Emergency sent!");
     msg.value = "";
   }, err => log(err), { enableHighAccuracy: true });
-  log("Emergency message sent");
 }
 
 // LOCATION TRACKING
@@ -224,6 +240,10 @@ function smoothMoveMarker(marker, newLatLng) {
 // HANDLE WEBSOCKET MESSAGES
 async function handleWSMessage(event){
   const msg = JSON.parse(event.data);
+  if (msg.type === "AUTH_SUCCESS") {
+    isAuthenticated = true;
+    log("Authenticated successfully");
+  }
 
   // Crowd Validation
   if (msg.type === "VALIDATE_ALERT") {
