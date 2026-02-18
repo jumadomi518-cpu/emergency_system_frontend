@@ -152,7 +152,7 @@ function showAssignmentUI(msg){
     <td>${msg.name || "Unknown"}</td>
     <td>${msg.phone || "Unknown"}</td>
     <td>${msg.message}</td>
-    <td>
+    <td class="status">
       <button onclick="respondToAssignment(${msg.alertId}, true)">Accept</button>
       <button onclick="respondToAssignment(${msg.alertId}, false)">Reject</button>
     </td>
@@ -163,7 +163,7 @@ function showAssignmentUI(msg){
 
 // RESPOND TO ASSIGNMENT
 function respondToAssignment(alertId, accept){
-  const status = document.querySelector("tr:last-child");
+  const status = document.querySelector(".status");
   ws.send(JSON.stringify({
     type:"RESPONDER_RESPONSE",
     alertId,
