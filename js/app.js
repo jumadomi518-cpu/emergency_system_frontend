@@ -1,6 +1,5 @@
-// ==========================
+
 // DEBUG LOG
-// ==========================
 function log(msg){
   console.log(msg);
   const panel = document.getElementById("debugPanel");
@@ -14,9 +13,8 @@ function log(msg){
 }
 
 
-// ==========================
+
 // UI TOGGLE
-// ==========================
 const show = document.querySelector(".show");
 const section = document.querySelector("section");
 const ma = document.getElementById("map");
@@ -27,9 +25,7 @@ show.onclick = () => {
 };
 
 
-// ==========================
-// GLOBAL STATE (CLEANED)
-// ==========================
+// GLOBAL STATE
 let ws;
 let isAuthenticated = false;
 
@@ -49,9 +45,7 @@ let mapFollowResponder = true;
 const etaDisplay = document.getElementById("etaDisplay");
 
 
-// ==========================
 // MAP SETUP
-// ==========================
 const map = L.map("map").setView([0,0], 13);
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -59,9 +53,8 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 
 
-// ==========================
+
 // SERVICE WORKER
-// ==========================
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js")
     .then(() => log("SW registered"))
@@ -69,18 +62,15 @@ if ("serviceWorker" in navigator) {
 }
 
 
-// ==========================
+
 // NOTIFICATION PERMISSION
-// ==========================
 if ("Notification" in window) {
   Notification.requestPermission()
     .then(permission => log("Notification permission: " + permission));
 }
 
 
-// ==========================
 // WEBSOCKET
-// ==========================
 const WS_URL = "wss://campus-emergency-server.onrender.com";
 const REST_URL = "https://campus-emergency-server.onrender.com/api";
 
@@ -105,9 +95,7 @@ function connectWebSocket(){
 
 connectWebSocket();
 
-// ==========================
 // PUSH SUBSCRIPTION
-// ==========================
 async function subscribePush() {
   try {
     const reg = await navigator.serviceWorker.ready;
@@ -151,9 +139,8 @@ function urlBase64ToUint8Array(base64String) {
 
   return outputArray;
 }
-// ==========================
+
 // SERVICE WORKER MESSAGE
-// ==========================
 navigator.serviceWorker.addEventListener("message", event => {
   const { type, alertId, vote } = event.data;
 
@@ -166,9 +153,8 @@ navigator.serviceWorker.addEventListener("message", event => {
 });
 
 
-// ==========================
+
 // EMERGENCY TRIGGER
-// ==========================
 function trigger(){
 
   if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -207,9 +193,8 @@ function trigger(){
 }
 
 
-// ==========================
+
 // LOCATION TRACKING
-// ==========================
 function start(){
   if (watchId) return;
 
@@ -256,9 +241,8 @@ function stop(){
 }
 
 
-// ==========================
+
 // WEBSOCKET HANDLER
-// ==========================
 async function handleWSMessage(event){
 
   const msg = JSON.parse(event.data);
@@ -289,12 +273,14 @@ async function handleWSMessage(event){
         iconUrl: "../assets/emergency.png",
         iconSize: [32,32]
       })
-    }).addTo(map).bindPopup(message);
+    }).addTo(map).bindPopup("Responder");
 
     map.setView([latitude, longitude], 15);
   }
 
   if (msg.type === "SELECTED_ROUTE") {
+     log("Selected route received");
+     log(msg);
     const { alertId, coordsFromResponder, distance, duration } = msg;
 
     if (!coordsFromResponder?.length) return;
@@ -309,14 +295,14 @@ async function handleWSMessage(event){
   }
 
   if (msg.type === "RESPONDER_LOCATION_UPDATE") {
-
+     log("New location received");
     const { responderId, alertId, latitude, longitude } = msg;
     const newLatLng = [latitude, longitude];
 
     if (!responderMarkers[responderId]) {
       responderMarkers[responderId] = L.marker(newLatLng, {
         icon: L.icon({
-          iconUrl: "responder.png",
+          iconUrl: "../assets/responder.png",
           iconSize: [40,40]
         })
       }).addTo(map);
@@ -333,9 +319,8 @@ async function handleWSMessage(event){
 }
 
 
-// ==========================
+
 // ROUTE DRAWING
-// ==========================
 function drawFullRoute(alertId){
 
   const coords = routeCoordinates[alertId];
@@ -357,9 +342,8 @@ function drawFullRoute(alertId){
 }
 
 
-// ==========================
+
 // ROUTE PROGRESS
-// ==========================
 function updateRouteProgress(alertId, currentLatLng){
 
   const route = routeCoordinates[alertId];
@@ -392,7 +376,7 @@ function updateRouteProgress(alertId, currentLatLng){
     return sum + map.distance(remaining[idx - 1], point);
   }, 0);
 
-  // PROPER ETA CALCULATION
+  //ETA CALCULATION
   const avgSpeedKmh = 40;
   const speedMps = (avgSpeedKmh * 1000) / 3600;
   const etaSeconds = Math.round(distanceLeft / speedMps);
@@ -408,9 +392,8 @@ function updateRouteProgress(alertId, currentLatLng){
 }
 
 
-// ==========================
+
 // SMOOTH MARKER
-// ==========================
 function smoothMoveMarker(marker, newLatLng){
   const current = marker.getLatLng();
   const steps = 20;
