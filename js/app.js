@@ -364,3 +364,4 @@ function updateRouteProgress(alertId, currentLatLng) {
   if (distanceLeft < 10) alert("Responder has arrived.");
 }
 
+}
