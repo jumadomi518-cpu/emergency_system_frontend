@@ -25,6 +25,17 @@ function log(msg){
 const show = document.querySelector(".show");
 const section = document.querySelector("section");
 const ma = document.getElementById("map");
+let emergencyMarker;
+let responderMarkers = {};
+let routeCoordinates = {};       // key alertId, stores full route
+let routeRemainingPolyline;
+let routeTraveledPolyline;
+let mapFollowResponder = true;
+const etaDisplay = document.getElementById("etaDisplay"); 
+
+
+
+
 
 show.onclick = () => {
   section.classList.toggle("scale");
@@ -233,7 +244,6 @@ function smoothMoveMarker(marker, newLatLng) {
   animateStep();
 }
 
-
 // HANDLE WEBSOCKET MESSAGES
 async function handleWSMessage(event){
   const msg = JSON.parse(event.data);
@@ -251,40 +261,47 @@ async function handleWSMessage(event){
  }
 
   // Emergency Assigned to Responder (LIVE)
-  if (msg.type === "EMERGENCY_ASSIGNMENT") {
-    const { latitude, longitude, alertId, message, responder } = msg;
+    if (msg.type === "EMERGENCY_ASSIGNMENT") {
+    const { latitude, longitude, alertId, message } = msg;
 
     if (emergencyMarker) map.removeLayer(emergencyMarker);
     emergencyMarker = L.marker([latitude, longitude], {
       icon: L.icon({ iconUrl: "../assets/emergency.png", iconSize: [32,32] })
     }).addTo(map).bindPopup(message);
-    map.setView([latitude, longitude], 15);
 
-    if (responder && responder.id === localStorage.getItem("userId")) {
-      trackResponderRoute(responder, [latitude, longitude], alertId);
-    }
-  log("emergency assighnment");
+    map.setView([latitude, longitude], 15);
   }
 
-   if (msg.type === "SELECTED_ROUTE") {
-     log("Route received from the responder", msg)
-    };
+
+  if (msg.type === "SELECTED_ROUTE") {
+    const { alertId, coordsFromResponder, distance, duration } = msg;
+    if (!coordsFromResponder || coordsFromResponder.length === 0) return;
+    // store coordinates for live tracking
+    routeCoordinates[alertId] = coordsFromResponder;
+    drawFullRoute(alertId);
+    etaDisplay.innerText = `Selected Route: ${distance} km - ${duration} min`;
+  }
+
 
     if (msg.type === "RESPONDER_LOCATION_UPDATE") {
-  const responderId = msg.responderId;
-  const newLatLng = [msg.latitude, msg.longitude];
+    const responderId = msg.responderId;
+    const alertId = msg.alertId;
+    const newLatLng = [msg.latitude, msg.longitude];
+    // creates or update marker
+    if (!responderMarkers[responderId]) {
+      responderMarkers[responderId] = L.marker(newLatLng, {
+        icon: L.icon({ iconUrl: "responder.png", iconSize: [40,40], className: 'pulsing-responder' })
+      }).addTo(map);
+    } else {
+      smoothMoveMarker(responderMarkers[responderId], newLatLng);
+    }
 
-  if (!responderMarkers[responderId]) {
-    // create marker if it doesn't exist
-    responderMarkers[responderId] = L.marker(newLatLng, {
-      icon: L.icon({ iconUrl: "responder.png", iconSize: [32, 32] })
-    }).addTo(map);
-  } else {
-    // smoothly move marker
-    smoothMoveMarker(responderMarkers[responderId], newLatLng);
-  }
-  log(`New location received for ${responderId}`);
-}
+   if (mapFollowResponder) map.panTo(newLatLng, { animate: true });
+
+      if (routeCoordinates[alertId]) {
+      updateRouteProgress(alertId, newLatLng);
+    }
+
 
   // Responder Accepted Alert (victim view)
   if (msg.type === "RESPONDER_ACCEPTED") {
@@ -297,4 +314,53 @@ async function handleWSMessage(event){
 }
 
 
+
+function drawFullRoute(alertId) {
+  const coords = routeCoordinates[alertId];
+  if (!coords || coords.length === 0) return;
+
+  // remove old polylines
+  if (routeRemainingPolyline) map.removeLayer(routeRemainingPolyline);
+  if (routeTraveledPolyline) map.removeLayer(routeTraveledPolyline);
+
+  routeRemainingPolyline = L.polyline(coords, { color: "blue", weight: 5, opacity: 0.7 }).addTo(map);
+  routeTraveledPolyline = L.polyline([], { color: "green", weight: 5, opacity: 0.7 }).addTo(map);
+
+  map.fitBounds(routeRemainingPolyline.getBounds());
+}
+
+// UPDATE ROUTE PROGRESS
+function updateRouteProgress(alertId, currentLatLng) {
+  const route = routeCoordinates[alertId];
+  if (!route) return;
+
+  // find nearest index to current location
+  const nearestIdx = route.reduce((closestIdx, point, idx) => {
+    const dist = map.distance(point, currentLatLng);
+    return dist < map.distance(route[closestIdx], currentLatLng) ? idx : closestIdx;
+  }, 0);
+
+  // slice remaining vs traveled
+  const remaining = route.slice(nearestIdx);
+  const traveled = route.slice(0, nearestIdx + 1);
+
+  if (routeRemainingPolyline) map.removeLayer(routeRemainingPolyline);
+  if (routeTraveledPolyline) map.removeLayer(routeTraveledPolyline);
+
+  routeRemainingPolyline = L.polyline(remaining, { color: "blue", weight: 5, opacity: 0.7 }).addTo(map);
+  routeTraveledPolyline = L.polyline(traveled, { color: "green", weight: 5, opacity: 0.7 }).addTo(map);
+
+  // ETA & distance
+  const distanceLeft = remaining.reduce((sum, point, idx) => {
+    if (idx === 0) return 0;
+    return sum + map.distance(remaining[idx - 1], point);
+  }, 0);
+
+  const averageSpeed = 15;
+  const eta = Math.round(distanceLeft / averageSpeed); // seconds
+  etaDisplay.innerText = `ETA: ${Math.floor(eta/60)} min ${eta%60} sec, Distance left: ${(distanceLeft/1000).toFixed(2)} km`;
+
+  // arrival alert
+  if (distanceLeft < 10) alert("Responder has arrived.");
+}
 
