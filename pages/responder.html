@@ -194,6 +194,18 @@ function startNavigation(alertId, destLat, destLng){
       L.marker([0,0],{icon:responderIcon}).addTo(map);
   }
 
+  navigator.geolocation.getCurrentPosition(pos => {
+
+  const startLat = pos.coords.latitude;
+  const startLng = pos.coords.longitude;
+
+  responderMarkers[alertId].setLatLng([startLat,startLng]);
+
+  fetchRoutes(alertId,startLat,startLng,destLat,destLng);
+
+});
+
+
   currentWatchId = navigator.geolocation.watchPosition(pos=>{
 
     const startLat = pos.coords.latitude;
@@ -202,7 +214,6 @@ function startNavigation(alertId, destLat, destLng){
     responderMarkers[alertId].setLatLng([startLat,startLng]);
 
     updateHeading(startLat,startLng,destLat,destLng);
-    fetchRoutes(alertId,startLat,startLng,destLat,destLng);
 
     ws.send(JSON.stringify({
       type:"LOCATION_UPDATE",
