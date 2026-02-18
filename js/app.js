@@ -265,6 +265,11 @@ async function handleWSMessage(event){
     }
   log("emergency assighnment");
   }
+
+   if (msg.type === "SELECTED_ROUTE") {
+     log("Route received from the responder", msg)
+    };
+
     if (msg.type === "RESPONDER_LOCATION_UPDATE") {
   const responderId = msg.responderId;
   const newLatLng = [msg.latitude, msg.longitude];
