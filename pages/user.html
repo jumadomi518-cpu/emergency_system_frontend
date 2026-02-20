@@ -11,6 +11,7 @@
     margin: 0;
     font-family: "Poppins", sans-serif;
     box-sizing: border-box;
+    font-size: 1.3rem;
   }
   
 
@@ -22,11 +23,44 @@
 
 
 .show {
-  text-align: right;
+  display: flex;
 }
   header {
     display: flex;
+    justify-content: space-between;
   }
+  h1 {
+padding: 1.1em;
+font-size: 1.5rem;
+
+  }
+  
+  .content section {
+    display: flex;
+    justify-content: space-between;
+    padding: 1.5em;
+  }
+  
+  .buttons {
+    width: 50%;
+    padding: 1.5em;
+  }
+  
+  .buttons button {
+    font-size: 1.2rem;
+    display: block;
+    width: 100%;
+    padding: 0.5em;
+    text-align: left;
+    margin-top: 0.7em;
+    border-radius: 0.2em;
+    white-space: nowrap;
+    overflow: scroll;
+    background-color: cadetblue;
+    color: white;
+  }
+  
+
   
   #logo {
     height: 10vh;
@@ -41,22 +75,6 @@
     object-fit: contain;
     height: 20vh;
   }
-  .emergency_type {
-    font-size: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    padding: 2em;
-  }
-  input[type="radio"] {
-  accent-color: #ff4d6d;
-  width: 20px;
-  height: 20px;
-}
-  
-  p {
-    font-size: 1.3rem;
-    padding: 0.7em;
-  }
 
   
   .msgCont {
@@ -66,7 +84,7 @@
   }
   textarea {
     font-size: 1.3rem;
-    width: 70%;
+    width: 80%;
     padding: 0.3em;
     border-radius: 0.5em;
     border-color: red;
@@ -75,19 +93,21 @@
   .emergencyBtnContainer {
     display: grid;
     place-items: center;
-    padding: 2em;
+    padding: 1em;
   }
     .emergencyBtnContainer button {
-      padding: 5rem;
-      border-radius: 50%;
-      border: none;
-      background-color: red;
+      font-size: 1.8rem;
+      padding: 0.3em;
+      width: 50%;
+      border-radius: 5%;
+      background-color: rgba(250, 0, 0, 0.2);
+      color: crimson;
     }
   .tracking {
     font-size: 1.3rem;
     display: flex;
     justify-content: space-between;
-    padding: 1em;
+    padding: 2em;
   }
   
   .tracking button {
@@ -97,21 +117,31 @@
     border: none;
     background-color: purple;
     color: white;
+    font-size: 1rem;
   }
   
-  button:active {
-    background-color: black;
+  button {
+    border: none;
   }
+  
+/*  button:active {
+    background-color: black;
+  }*/
+  
   
   
   .map {
     height: 50vh;
+    border: 2px solid black;
   }
   
   .expand {
   height: 90vh;
 }
 
+.status div {
+  padding: 1em;
+}
   .status {
     font-size: 1.4rem;
     margin: 0.5em;
@@ -119,11 +149,15 @@
     justify-content: space-between;
   }
   
+  .color {
+    background-color: green !important;
+  }
+  
   .pulsing-responder {
   animation: pulse 1.5s infinite;
   border-radius: 50%;
 }
-
+  
 @keyframes pulse {
   0% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.3); opacity: 0.5; }
@@ -132,43 +166,31 @@
   </style>
 </head>
 <body>
-  <section>
+  <section class="content">
   <header>
     <img src="../assets/1771060588592.png" id="logo" />
-
-<p>Instantly alert nearby responders and share your live location when every second matters.</p>
+<h1>Emergency Response System.</h1>
   </header>
-
-<div class="ambulance">
-<div class="emergency_type">
-  <div>
-  <input type="radio" name="type" value="ACCIDENT" />
-  <label for="accident">Accident</label>
+<section>
+  <img src="/frontend/assets/images.jpeg" id="ambulance">
+  <div class="buttons">
+    <button id="robbery">Robbery</button>
+    <button id="accident">Accident</button>
+    <button id="fire">Fire outbreak</button>
   </div>
-    <div>
-  <input type="radio" name="type" value="FIRE" />
-  <label for="accident">Fire Outbreak</label>
-  </div>
-    <div>
-  <input type="radio" name="type" value="ROBBERY" />
-  <label for="accident">Robbery</label>
-  </div>
-</div>
-<img src="../assets/images.jpeg" id="ambulance" >
-</div>
+</section>
 
 <div class="msgCont">
-<textarea id="msg" placeholder="Write here..."></textarea>
+<textarea id="msg" placeholder="Additional information..."></textarea>
 </div>
 
 <div class="emergencyBtnContainer">
-<button onclick="trigger()"></button>
+<button onclick="trigger()">Submit</button>
 </div>
 <div class="tracking">
 <button onclick="start()">Start Tracking</button>
 <button onclick="stop()">Stop Tracking</button>
 </div>
-
   </section>
 <div class="status">
   <div>

@@ -52,6 +52,12 @@ function log(msg){
 }
 
 
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/swr.js")
+    .then(() => log("SW registered"))
+    .catch(err => log("SW registration failed: " + err));
+}
+
 // CONFIG
 const WS_URL = "wss://campus-emergency-server.onrender.com";
 const role = localStorage.getItem("role");
