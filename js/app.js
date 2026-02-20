@@ -292,6 +292,7 @@ async function handleWSMessage(event){
 
   if (msg.type === "VALIDATE_ALERT") {
     const vote = confirm(msg.message + "\nOK = TRUE, Cancel = FALSE");
+    log("validate alert received");
     ws.send(JSON.stringify({
       type: "VALIDATE_RESPONSE",
       alertId: msg.alertId,

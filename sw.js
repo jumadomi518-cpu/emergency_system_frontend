@@ -5,7 +5,7 @@ self.addEventListener("push", event => {
   const data = event.data ? event.data.json() : {};
 
   const options = {
-    body: data.message || "An emergency has been triggered near you. Please confirm.",
+    body: "An emergency has been triggered near you. Please confirm.",
     icon: "../assets/alert-icon.png",
     badge: "../assets/badge.png",
     vibrate: [250, 100, 250],
