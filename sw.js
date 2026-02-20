@@ -27,8 +27,7 @@ self.addEventListener("notificationclick", event => {
   let vote = null;
 
   if (event.action === "true") vote = true;
-  else if (event.action === "false") vote = false;
-  else vote = confirm("Was this emergency true? OK = True, Cancel = False");
+  if (event.action === "false") vote = false;
 
   event.notification.close();
 
