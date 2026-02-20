@@ -19,13 +19,53 @@ const show = document.querySelector(".show");
 const section = document.querySelector("section");
 const ma = document.getElementById("map");
 
+let emergencyType = null;
+
+let toggleAccident = true;
+let toggleFire = true;
+let toggleRobbery = true;
+
+const accident = document.getElementById("accident");
+const robbery = document.getElementById("robbery");
+const fire = document.getElementById("fire");
+
+
+accident.onclick = () => {
+emergencyType = toggleAccident ? "ACCIDENT" : null;
+toggleAccident = !toggleAccident;
+accident.classList.toggle("color");
+robbery.classList.remove("color");
+fire.classList.remove("color");
+}
+
+robbery.onclick = () => {
+emergencyType = toggleAccident ? "ROBBERY" : null;
+toggleRobbery = !toggleRobbery;
+robbery.classList.toggle("color");
+accident.classList.remove("color");
+fire.classList.remove("color");
+}
+
+fire.onclick = () => {
+emergencyType = toggleFire ? "FIRE" : null;
+toggleFire = !toggleFire;
+fire.classList.toggle("color");
+robbery.classList.remove("color");
+accident.classList.remove("color");
+}
+
+
+
+
+
 show.onclick = () => {
   section.classList.toggle("scale");
   ma.classList.toggle("expand");
 };
 
 
-// GLOBAL STATE
+
+// GLOBAL STATE 
 let ws;
 let isAuthenticated = false;
 
@@ -43,6 +83,7 @@ let firstUpdate = true;
 let mapFollowResponder = true;
 
 const etaDisplay = document.getElementById("etaDisplay");
+
 
 
 // MAP SETUP
@@ -94,6 +135,7 @@ function connectWebSocket(){
 }
 
 connectWebSocket();
+
 
 // PUSH SUBSCRIPTION
 async function subscribePush() {
@@ -152,13 +194,11 @@ navigator.serviceWorker.addEventListener("message", event => {
   }
 });
 
-
-
 // EMERGENCY TRIGGER
 function trigger(){
 
   if (!ws || ws.readyState !== WebSocket.OPEN) {
-    alert("WebSocket not connected yet.");
+    alert("Establishing connection please wait...");
     return;
   }
 
@@ -171,13 +211,13 @@ function trigger(){
 
     const { latitude, longitude } = pos.coords;
     const message = document.getElementById("msg").value;
-    const emergencyType = document.querySelector('input[name="type"]:checked')?.value;
+    
 
     if (!emergencyType) {
       alert("Select emergency type.");
       return;
     }
-
+console.log(emergencyType);
     ws.send(JSON.stringify({
       type: "EMERGENCY",
       message,
@@ -191,8 +231,6 @@ function trigger(){
 
   }, err => alert(err.message), { enableHighAccuracy: true });
 }
-
-
 
 // LOCATION TRACKING
 function start(){
@@ -240,18 +278,16 @@ function stop(){
   document.getElementById("statusText").innerText = "OFF";
 }
 
-
-
 // WEBSOCKET HANDLER
 async function handleWSMessage(event){
 
   const msg = JSON.parse(event.data);
 
   if (msg.type === "AUTH_SUCCESS") {
+    subscribePush();
     isAuthenticated = true;
     log("Authenticated");
-  start();
-  subscribePush();
+    start();
   }
 
   if (msg.type === "VALIDATE_ALERT") {
@@ -273,14 +309,12 @@ async function handleWSMessage(event){
         iconUrl: "../assets/emergency.png",
         iconSize: [32,32]
       })
-    }).addTo(map).bindPopup("Responder");
+    }).addTo(map).bindPopup(message);
 
     map.setView([latitude, longitude], 15);
   }
 
   if (msg.type === "SELECTED_ROUTE") {
-     log("Selected route received");
-     log(msg);
     const { alertId, coordsFromResponder, distance, duration } = msg;
 
     if (!coordsFromResponder?.length) return;
@@ -295,14 +329,14 @@ async function handleWSMessage(event){
   }
 
   if (msg.type === "RESPONDER_LOCATION_UPDATE") {
-     log("New location received");
+
     const { responderId, alertId, latitude, longitude } = msg;
     const newLatLng = [latitude, longitude];
 
     if (!responderMarkers[responderId]) {
       responderMarkers[responderId] = L.marker(newLatLng, {
         icon: L.icon({
-          iconUrl: "../assets/responder.png",
+          iconUrl: "responder.png",
           iconSize: [40,40]
         })
       }).addTo(map);
@@ -317,8 +351,6 @@ async function handleWSMessage(event){
       updateRouteProgress(alertId, newLatLng);
   }
 }
-
-
 
 // ROUTE DRAWING
 function drawFullRoute(alertId){
@@ -340,8 +372,6 @@ function drawFullRoute(alertId){
 
   map.fitBounds(routeRemainingPolyline[alertId].getBounds());
 }
-
-
 
 // ROUTE PROGRESS
 function updateRouteProgress(alertId, currentLatLng){
@@ -376,7 +406,7 @@ function updateRouteProgress(alertId, currentLatLng){
     return sum + map.distance(remaining[idx - 1], point);
   }, 0);
 
-  //ETA CALCULATION
+  // ETA CALCULATION
   const avgSpeedKmh = 40;
   const speedMps = (avgSpeedKmh * 1000) / 3600;
   const etaSeconds = Math.round(distanceLeft / speedMps);
@@ -390,7 +420,6 @@ function updateRouteProgress(alertId, currentLatLng){
     alert("Responder has arrived.");
   }
 }
-
 
 
 // SMOOTH MARKER
