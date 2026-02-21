@@ -159,12 +159,10 @@ let currentWatchId = null;
 
 
 // RESPONDER ICON
-const responderIcon = L.divIcon({
-  html:`<svg width="30" height="30" viewBox="0 0 100 100">
-          <polygon points="50,100 0,0 100,0" fill="blue"/>
-        </svg>`,
-  className:"",
-  iconSize:[30,30]
+const responderIcon = L.icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // your original arrow
+  iconSize: [30, 30],       // size of the arrow
+  iconAnchor: [15, 15]      // center of rotation
 });
 
 
@@ -300,7 +298,7 @@ function startNavigation(alertId, destLat, destLng){
 
     responderMarkers[alertId].setLatLng([startLat,startLng]);
 
-    updateHeading(startLat,startLng,destLat,destLng);
+    updateHeading();
 
     ws.send(JSON.stringify({
       type:"LOCATION_UPDATE",
@@ -436,82 +434,62 @@ function fetchRoutes(alertId, sLat, sLng, dLat, dLng) {
   });
 }
     
+function rotateResponderMarker(alertId, heading) {
+  const marker = responderMarkers[alertId];
+  if (!marker || !marker._icon) return;
 
-
-const toRad = deg => deg * Math.PI / 180;
-const toDeg = rad => rad * 180 / Math.PI;
-
-// Main updateHeading function (signature unchanged)
-function updateHeading(currentLat, currentLng, destLat, destLng) {
-  const arrow = document.getElementById("responderArrow");
-  if (!arrow) return;
-
-  // Device heading (0–360)
-  const deviceHeading = arrow._deviceHeading || 0;
-
-  // Smooth rotation
-  const currentRotation = arrow._currentRotation || 0;
-  let delta = deviceHeading - currentRotation;
-
-  // Rotate shortest way
-  if (delta > 180) delta -= 360;
-  if (delta < -180) delta += 360;
-
-  const newRotation = currentRotation + delta;
-  arrow._currentRotation = newRotation;
-
-  // Apply rotation with smooth transition
-  arrow.style.transition = "transform 0.2s ease-out";
-  arrow.style.transform = `rotate(${newRotation - 360}deg)`;
+  marker._icon.style.transform = `rotate(${heading}deg)`;
+  marker._icon.style.transformOrigin = 'center center';
 }
 
-window.addEventListener("deviceorientationabsolute", (event) => {
-  const arrow = document.getElementById("responderArrow");
-  if (!arrow) return;
 
-  let heading;
+window.addEventListener("deviceorientation", handleOrientation);
+window.addEventListener("deviceorientationabsolute", handleOrientation);
 
-  // iOS
-  if (typeof event.webkitCompassHeading !== "undefined") {
-    heading = event.webkitCompassHeading; // already in degrees 0-360
-  } 
-  // Android and others
-  else if (event.absolute === true && event.alpha !== null) {
-    heading = event.alpha; // alpha is 0-360, clockwise from North
-  } 
-  else {
-    heading = 0; // fallback
-  }
+function handleOrientation(event) {
+    if (!activeAssignment) return; // only rotate the active responder
 
-  // Correct so arrow points in the same direction as the phone’s front
-  arrow._deviceHeading = heading;
+    let heading;
 
-  updateHeading(
-    arrow._currentLat || 0,
-    arrow._currentLng || 0,
-    arrow._destLat || 0,
-    arrow._destLng || 0
-  );
-});
+    if (event.webkitCompassHeading !== undefined) {
+        heading = event.webkitCompassHeading; // iOS
+    } else if (event.alpha !== null) {
+        heading = 360 - event.alpha;           // Android & others
+    } else {
+        heading = 0;
+    }
+
+    // Rotate the marker using the new function
+    rotateResponderMarker(activeAssignment.alertId, heading);
+}
+
+
+
+
+
+
+
 
 // Watch device location 
 navigator.geolocation.watchPosition(
   (pos) => {
-    const arrow = document.getElementById("responderArrow");
-    if (!arrow) return;
+    if (!activeAssignment) return;
 
-    // Store latest location
-    arrow._currentLat = pos.coords.latitude;
-    arrow._currentLng = pos.coords.longitude;
+const lat = pos.coords.latitude;
+const lng = pos.coords.longitude;
 
-    // Call updateHeading to keep signature consistent
-    updateHeading(
-      arrow._currentLat,
-      arrow._currentLng,
-      arrow._destLat || 0,
-      arrow._destLng || 0
-    );
-  },
+// Update marker position
+responderMarkers[activeAssignment.alertId].setLatLng([lat, lng]);
+
+// Optionally, you can also send location to the server
+ws.send(JSON.stringify({
+  type: "LOCATION_UPDATE",
+  alertId: activeAssignment.alertId,
+  latitude: lat,
+  longitude: lng
+}));
+
+    },
   (err) => console.error("Geolocation error:", err),
   { enableHighAccuracy: true, maximumAge: 1000 }
 );
