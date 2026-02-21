@@ -79,8 +79,14 @@
 .routeCard {
   font-size: 1.2rem;
   display: flex;
+  padding: 0.3em;
+  margin: 0.3em;
   justify-content: space-between;
 }
+
+h4 {
+ padding: 0.5em;
+ }
 
 .routeCard span {
   display: inline-block;
@@ -260,7 +266,7 @@ function fetchRoutes(alertId, sLat, sLng, dLat, dLng) {
           });
 
           card.classList.add("selected");
-          btn.innerText = "Preferred";
+          btn.innerText = "Selected";
 
           routeLines[alertId].forEach((line, i) => {
             line.setStyle({ weight: i === index ? 6 : 4, opacity: i === index ? 1 : 0.6 });
