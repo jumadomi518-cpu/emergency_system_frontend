@@ -39,16 +39,7 @@
       padding: 6px; 
       text-align: center; 
     }
-    button { 
-      font-size: 1.1rem;
-      padding: 5px 8px; 
-      border: none; 
-      border-radius: 4px; 
-      cursor: pointer; 
-      width: 20%;
-      background-color: magenta;
-      color: white;
-    }
+    
     .accept { 
       background: green; 
       color: white;
@@ -290,20 +281,7 @@ function fetchRoutes(alertId, sLat, sLng, dLat, dLng) {
         card.appendChild(durationSpan);
         card.appendChild(document.createElement("br"));
         card.appendChild(btn);
-
         routeDiv.appendChild(card);
-
-        // Auto send best route
-        if (index === bestIndex) {
-          ws.send(JSON.stringify({
-            type: "SELECTED_ROUTE",
-            alertId,
-            routeIndex: bestIndex,
-            distance,
-            duration,
-            routeCoordinates: coords
-          }));
-        }
       });
 
       map.fitBounds(routeLines[alertId][bestIndex].getBounds());
@@ -340,8 +318,8 @@ function showAssignmentUI(msg) {
     <td>${msg.phone}</td>
     <td>${msg.message}</td>
     <td id="status-${msg.alertId}">
-      <button onclick="respondToAssignment(${msg.alertId}, true)">Accept</button>
-      <button onclick="respondToAssignment(${msg.alertId}, false)">Reject</button>
+      <button class="accept" onclick="respondToAssignment(${msg.alertId}, true)">Accept</button>
+      <button class="reject" onclick="respondToAssignment(${msg.alertId}, false)">Reject</button>
     </td>
   `;
   document.getElementById("rows").appendChild(row);
