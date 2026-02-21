@@ -162,9 +162,7 @@ function getBearing(lat1, lon1, lat2, lon2) {
 // --- SMOOTH MOVEMENT ENGINE ---
 function animateMarker(marker, startPos, endPos, duration = 1000) {
   const startTime = performance.now();
-  const bearing = getBearing(startPos[0], startPos[1], endPos[0], endPos[1]);
 
-  // Cancel previous animation for this marker
   if (animationFrames[marker._leaflet_id]) cancelAnimationFrame(animationFrames[marker._leaflet_id]);
 
   function step(now) {
@@ -176,8 +174,14 @@ function animateMarker(marker, startPos, endPos, duration = 1000) {
     const lng = startPos[1] + (endPos[1] - startPos[1]) * eased;
     marker.setLatLng([lat, lng]);
 
+    // --- Movement-based heading ---
     if (marker._icon) {
-      marker._icon.style.transform = `rotate(${bearing}deg) translate(-50%, -50%)`;
+      let heading = 0;
+      if (marker._previousPos) {
+        heading = getBearing(marker._previousPos[0], marker._previousPos[1], lat, lng);
+      }
+      marker._icon.style.transform = `rotate(${heading}deg) translate(-50%, -50%)`;
+      marker._previousPos = [lat, lng];
     }
 
     if (progress < 1) {
@@ -225,7 +229,7 @@ function showAssignmentUI(msg) {
   }
   const row = document.createElement("tr");
   row.innerHTML = `
-    <td>${msg.name || "User"}</td>
+    <td>${msg.name || "User"} (${msg.phone || "-"})</td>
     <td>${msg.message}</td>
     <td id="status-${msg.alertId}">
       <button onclick="respondToAssignment(${msg.alertId}, true)">Accept</button>
@@ -242,6 +246,7 @@ function respondToAssignment(alertId, accept) {
   }
 }
 
+// --- NAVIGATION ---
 function startNavigation(alertId, destLat, destLng) {
   if (currentWatchId) navigator.geolocation.clearWatch(currentWatchId);
 
@@ -302,7 +307,6 @@ function removeAlert(id) {
 }
 
 connectWS();
-
 </script>
 </body>
 </html>
