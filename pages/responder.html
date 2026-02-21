@@ -467,23 +467,26 @@ function updateHeading(currentLat, currentLng, destLat, destLng) {
   arrow.style.transform = `rotate(${newRotation - 360}deg)`;
 }
 
-// Device orientation listener (real-time compass)
-window.addEventListener("deviceorientation", (event) => {
+window.addEventListener("deviceorientationabsolute", (event) => {
   const arrow = document.getElementById("responderArrow");
   if (!arrow) return;
 
-  let deviceHeading;
+  let heading;
 
   // iOS
   if (typeof event.webkitCompassHeading !== "undefined") {
-    deviceHeading = event.webkitCompassHeading;
+    heading = event.webkitCompassHeading; // already in degrees 0-360
   } 
-  // Android
+  // Android and others
+  else if (event.absolute === true && event.alpha !== null) {
+    heading = event.alpha; // alpha is 0-360, clockwise from North
+  } 
   else {
-    deviceHeading = event.alpha;
+    heading = 0; // fallback
   }
 
-  arrow._deviceHeading = deviceHeading;
+  // Correct so arrow points in the same direction as the phone’s front
+  arrow._deviceHeading = heading;
 
   updateHeading(
     arrow._currentLat || 0,
@@ -492,7 +495,6 @@ window.addEventListener("deviceorientation", (event) => {
     arrow._destLng || 0
   );
 });
-
 
 // Watch device location 
 navigator.geolocation.watchPosition(
