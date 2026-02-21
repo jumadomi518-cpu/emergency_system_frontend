@@ -126,7 +126,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-// DEBUG LOG
+// --- LOG ---
 function log(msg){
   const panel = document.getElementById("debugPanel");
   const time = new Date().toLocaleTimeString();
@@ -134,21 +134,20 @@ function log(msg){
   panel.scrollTop = panel.scrollHeight;
 }
 
-
+// --- SERVICE WORKER ---
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/swr.js")
     .then(() => log("SW registered"))
     .catch(err => log("SW registration failed: " + err));
 }
 
-// CONFIG
+// --- CONFIG ---
 const WS_URL = "wss://campus-emergency-server.onrender.com";
 const role = localStorage.getItem("role");
 let ws;
 let activeAssignment = null;
 
-
-// MAP
+// --- MAP ---
 const map = L.map("map").setView([0,0],2);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
@@ -157,16 +156,14 @@ const responderMarkers = {};
 const routeLines = {};
 let currentWatchId = null;
 
-
-// RESPONDER ICON
+// --- ARROW ICON ---
 const responderIcon = L.icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // your original arrow
-  iconSize: [30, 30],       // size of the arrow
-  iconAnchor: [15, 15]      // center of rotation
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+  iconSize: [40, 40],
+  iconAnchor: [20, 20]
 });
 
-
-// CONNECT WEBSOCKET
+// --- WEBSOCKET ---
 function connectWS(){
   ws = new WebSocket(WS_URL);
 
@@ -186,31 +183,28 @@ function connectWS(){
 }
 connectWS();
 
-// HANDLE MESSAGES
+// --- HANDLE MESSAGES ---
 function handleWSMessage(e){
   const msg = JSON.parse(e.data);
   log(msg);
 
-  // After authentication → send initial location
-  if (msg.type === "AUTH_SUCCESS") {
-    if (navigator.geolocation) {
+  if(msg.type === "AUTH_SUCCESS"){
+    if(navigator.geolocation){
       navigator.geolocation.getCurrentPosition(pos => {
         ws.send(JSON.stringify({
-          type: "LOCATION_UPDATE",
+          type:"LOCATION_UPDATE",
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude
         }));
-      }, console.error, { enableHighAccuracy: true });
+      }, console.error, { enableHighAccuracy:true });
     }
   }
 
-  // Only responders handle assignments
   if(msg.type === "EMERGENCY_ASSIGNMENT" && role !== "user"){
     showAssignmentUI(msg);
-    log("Emergency Assignment received " + msg);
+    log("Emergency Assignment received");
   }
 
-  // If victim gets responder accepted
   if(msg.type === "RESPONDER_ACCEPTED"){
     log("Responder accepted alert " + msg.alertId);
   }
@@ -220,16 +214,12 @@ function handleWSMessage(e){
   }
 }
 
-
-// SHOW ASSIGNMENT UI
+// --- SHOW ASSIGNMENT ---
 function showAssignmentUI(msg){
-
   activeAssignment = msg;
 
-  // Add marker for emergency
   if(!emergencyMarkers[msg.alertId]){
-    emergencyMarkers[msg.alertId] =
-      L.marker([msg.latitude,msg.longitude]).addTo(map);
+    emergencyMarkers[msg.alertId] = L.marker([msg.latitude,msg.longitude]).addTo(map);
   }
 
   const row = document.createElement("tr");
@@ -242,11 +232,10 @@ function showAssignmentUI(msg){
       <button onclick="respondToAssignment(${msg.alertId}, false)">Reject</button>
     </td>
   `;
-
   document.getElementById("rows").appendChild(row);
 }
 
-// RESPOND TO ASSIGNMENT
+// --- RESPOND TO ASSIGNMENT ---
 function respondToAssignment(alertId, accept){
   const status = document.querySelector(".status");
   ws.send(JSON.stringify({
@@ -256,249 +245,185 @@ function respondToAssignment(alertId, accept){
   }));
 
   if(accept && activeAssignment){
- 
-  status.innerText = "Accepted";
-    startNavigation(
-      alertId,
-      activeAssignment.latitude,
-      activeAssignment.longitude
-    );
+    status.innerText = "Accepted";
+    startNavigation(alertId, activeAssignment.latitude, activeAssignment.longitude);
   } else {
- status.innerText = "rejected";
+    status.innerText = "Rejected";
   }
 }
 
-
-// START NAVIGATION
+// --- START NAVIGATION ---
 function startNavigation(alertId, destLat, destLng){
-
   if(currentWatchId) navigator.geolocation.clearWatch(currentWatchId);
 
   if(!responderMarkers[alertId]){
-    responderMarkers[alertId] =
-      L.marker([0,0],{icon:responderIcon}).addTo(map);
+    responderMarkers[alertId] = L.marker([0,0], {icon: responderIcon}).addTo(map);
   }
 
-  navigator.geolocation.getCurrentPosition(pos => {
+  let lastPos = null;
 
-  const startLat = pos.coords.latitude;
-  const startLng = pos.coords.longitude;
+  function moveMarkerSmooth(newLat, newLng){
+    if(!lastPos){
+      responderMarkers[alertId].setLatLng([newLat,newLng]);
+      lastPos = [newLat,newLng];
+      return;
+    }
 
-  responderMarkers[alertId].setLatLng([startLat,startLng]);
+    const frames = 10;
+    const latStep = (newLat - lastPos[0])/frames;
+    const lngStep = (newLng - lastPos[1])/frames;
 
-  fetchRoutes(alertId,startLat,startLng,destLat,destLng);
+    let i=0;
+    function animate(){
+      if(i<frames){
+        const lat = lastPos[0] + latStep*(i+1);
+        const lng = lastPos[1] + lngStep*(i+1);
+        responderMarkers[alertId].setLatLng([lat,lng]);
 
-});
+        // Heading based on movement
+        const dx = newLng - lastPos[1];
+        const dy = newLat - lastPos[0];
+        const angle = Math.atan2(dx, dy) * 180/Math.PI;
+        rotateResponderMarker(alertId, angle);
 
+        i++;
+        requestAnimationFrame(animate);
+      } else {
+        lastPos = [newLat,newLng];
+      }
+    }
+    animate();
+  }
+
+  navigator.geolocation.getCurrentPosition(pos=>{
+    moveMarkerSmooth(pos.coords.latitude,pos.coords.longitude);
+    fetchRoutes(alertId,pos.coords.latitude,pos.coords.longitude,destLat,destLng);
+  });
 
   currentWatchId = navigator.geolocation.watchPosition(pos=>{
-
-    const startLat = pos.coords.latitude;
-    const startLng = pos.coords.longitude;
-
-    responderMarkers[alertId].setLatLng([startLat,startLng]);
-
-    updateHeading();
+    moveMarkerSmooth(pos.coords.latitude,pos.coords.longitude);
 
     ws.send(JSON.stringify({
       type:"LOCATION_UPDATE",
       alertId,
-      latitude:startLat,
-      longitude:startLng
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude
     }));
-
   }, console.error, { enableHighAccuracy:true });
 }
 
-
-function fetchRoutes(alertId, sLat, sLng, dLat, dLng) {
-
+// --- FETCH ROUTES ---
+function fetchRoutes(alertId, sLat, sLng, dLat, dLng){
   fetch(`https://router.project-osrm.org/route/v1/driving/${sLng},${sLat};${dLng},${dLat}?alternatives=true&overview=full&geometries=geojson`)
-  .then(r => r.json())
-  .then(data => {
+    .then(r=>r.json())
+    .then(data=>{
+      if(!data.routes || data.routes.length===0) return;
 
-    if (!data.routes || data.routes.length === 0) return;
+      const routeDiv = document.getElementById("routeInfo");
+      routeDiv.innerHTML = "";
 
-    const routeDiv = document.getElementById("routeInfo");
-    routeDiv.innerHTML = "";
+      if(!routeLines[alertId]) routeLines[alertId]=[];
+      routeLines[alertId].forEach(line=>map.removeLayer(line));
+      routeLines[alertId]=[];
 
-    // Clear old routes
-    if (!routeLines[alertId]) routeLines[alertId] = [];
-    routeLines[alertId].forEach(line => map.removeLayer(line));
-    routeLines[alertId] = [];
+      const colors=["blue","green","red","orange","purple"];
+      let bestIndex=0, bestScore=Infinity;
 
-    const colors = ["blue", "green", "red", "orange", "purple"];
+      data.routes.forEach((route,index)=>{
+        const score = route.distance + route.duration;
+        if(score<bestScore){ bestScore=score; bestIndex=index; }
+      });
 
-    // Find best route (shortest distance + shortest duration)
-    let bestIndex = 0;
-    let bestScore = Infinity;
+      data.routes.forEach((route,index)=>{
+        const coords = route.geometry.coordinates.map(c=>[c[1],c[0]]);
+        const distance = (route.distance/1000).toFixed(2);
+        const duration = (route.duration/60).toFixed(1);
 
-    data.routes.forEach((route, index) => {
-      const score = route.distance + route.duration;
-      if (score < bestScore) {
-        bestScore = score;
-        bestIndex = index;
-      }
-    });
+        const polyline = L.polyline(coords,{
+          color: colors[index%colors.length],
+          weight: index===bestIndex?6:4,
+          opacity: index===bestIndex?1:0.6
+        }).addTo(map);
+        routeLines[alertId].push(polyline);
 
-    data.routes.forEach((route, index) => {
+        const card=document.createElement("div");
+        card.className="routeCard";
+        if(index===bestIndex) card.classList.add("selected");
 
-      const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-      const distance = (route.distance / 1000).toFixed(2);
-      const duration = (route.duration / 60).toFixed(1);
-
-      // Draw ALL routes
-      const polyline = L.polyline(coords, {
-        color: colors[index % colors.length],
-        weight: index === bestIndex ? 6 : 4,
-        opacity: index === bestIndex ? 1 : 0.6
-      }).addTo(map);
-
-      routeLines[alertId].push(polyline);
-
-      // Create route card
-      const card = document.createElement("div");
-      card.className = "routeCard";
-
-      const routeName = document.createElement("h4");
-      routeName.innerText = `Route ${String.fromCharCode(65 + index)}`;
-
-      const distanceSpan = document.createElement("span");
-      distanceSpan.innerText = `Distance: ${distance} km`;
-
-      const durationSpan = document.createElement("span");
-      durationSpan.innerText = `Duration: ${duration} min`;
-
-      const btn = document.createElement("button");
-      btn.innerText = index === bestIndex ? "Preferred" : "Use";
-
-      if (index === bestIndex) {
-        card.classList.add("selected");
-      }
-
-      btn.onclick = () => {
-
-        // Update UI highlight
-        document.querySelectorAll(".routeCard").forEach(c => {
-          c.classList.remove("selected");
-          c.querySelector("button").innerText = "Use";
-        });
-
-        card.classList.add("selected");
-        btn.innerText = "Selected";
-
-        // Highlight selected route
-        routeLines[alertId].forEach((line, i) => {
-          line.setStyle({
-            weight: i === index ? 6 : 4,
-            opacity: i === index ? 1 : 0.6
+        const btn=document.createElement("button");
+        btn.innerText = index===bestIndex?"Preferred":"Use";
+        btn.onclick=()=>{
+          document.querySelectorAll(".routeCard").forEach(c=>{
+            c.classList.remove("selected");
+            c.querySelector("button").innerText="Use";
           });
-        });
+          card.classList.add("selected");
+          btn.innerText="Selected";
+          routeLines[alertId].forEach((line,i)=>{
+            line.setStyle({ weight:i===index?6:4, opacity:i===index?1:0.6 });
+          });
+          map.fitBounds(polyline.getBounds());
+          ws.send(JSON.stringify({
+            type:"SELECTED_ROUTE",
+            alertId,
+            routeIndex:index,
+            distance,
+            duration,
+            routeCoordinates: coords
+          }));
+        };
 
-        map.fitBounds(polyline.getBounds());
+        card.innerHTML=`<h4>Route ${String.fromCharCode(65+index)}</h4>
+                        Distance: ${distance} km<br>
+                        Duration: ${duration} min<br>`;
+        card.appendChild(btn);
+        routeDiv.appendChild(card);
 
-        // Send FULL route coordinates to server
-        ws.send(JSON.stringify({
-          type: "SELECTED_ROUTE",
-          alertId,
-          routeIndex: index,
-          distance,
-          duration,
-          routeCoordinates: coords
-        }));
-      };
+        if(index===bestIndex){
+          ws.send(JSON.stringify({
+            type:"SELECTED_ROUTE",
+            alertId,
+            routeIndex:index,
+            distance,
+            duration,
+            routeCoordinates: coords
+          }));
+        }
+      });
 
-      card.appendChild(routeName);
-      card.appendChild(distanceSpan);
-      card.appendChild(document.createElement("br"));
-      card.appendChild(durationSpan);
-      card.appendChild(document.createElement("br"));
-      card.appendChild(btn);
-
-      routeDiv.appendChild(card);
-
-      // AUTO SEND BEST ROUTE TO SERVER
-      if (index === bestIndex) {
-        ws.send(JSON.stringify({
-          type: "SELECTED_ROUTE",
-          alertId,
-          routeIndex: bestIndex,
-          distance,
-          duration,
-          routeCoordinates: coords
-        }));
-      }
+      map.fitBounds(routeLines[alertId][bestIndex].getBounds());
     });
-
-    map.fitBounds(routeLines[alertId][bestIndex].getBounds());
-  });
 }
-    
-function rotateResponderMarker(alertId, heading) {
+
+// --- ROTATE MARKER ---
+function rotateResponderMarker(alertId, heading){
   const marker = responderMarkers[alertId];
-  if (!marker || !marker._icon) return;
-
+  if(!marker||!marker._icon) return;
   marker._icon.style.transform = `rotate(${heading}deg)`;
-  marker._icon.style.transformOrigin = 'center center';
+  marker._icon.style.transformOrigin = "center center";
 }
 
-
+// --- DEVICE ORIENTATION ---
 window.addEventListener("deviceorientation", handleOrientation);
 window.addEventListener("deviceorientationabsolute", handleOrientation);
 
-function handleOrientation(event) {
-    if (!activeAssignment) return; // only rotate the active responder
+function handleOrientation(event){
+  if(!activeAssignment) return;
 
-    let heading;
+  let heading;
+  if(event.webkitCompassHeading!==undefined){
+    heading=event.webkitCompassHeading;
+  } else if(event.alpha!==null){
+    heading=360-event.alpha;
+  } else { heading=0; }
 
-    if (event.webkitCompassHeading !== undefined) {
-        heading = event.webkitCompassHeading; // iOS
-    } else if (event.alpha !== null) {
-        heading = 360 - event.alpha;           // Android & others
-    } else {
-        heading = 0;
-    }
-
-    // Rotate the marker using the new function
-    rotateResponderMarker(activeAssignment.alertId, heading);
+  rotateResponderMarker(activeAssignment.alertId, heading);
 }
 
-
-
-
-
-
-
-
-// Watch device location 
-navigator.geolocation.watchPosition(
-  (pos) => {
-    if (!activeAssignment) return;
-
-const lat = pos.coords.latitude;
-const lng = pos.coords.longitude;
-
-// Update marker position
-responderMarkers[activeAssignment.alertId].setLatLng([lat, lng]);
-
-// Optionally, you can also send location to the server
-ws.send(JSON.stringify({
-  type: "LOCATION_UPDATE",
-  alertId: activeAssignment.alertId,
-  latitude: lat,
-  longitude: lng
-}));
-
-    },
-  (err) => console.error("Geolocation error:", err),
-  { enableHighAccuracy: true, maximumAge: 1000 }
-);
-
-
-// REMOVE ALERT
+// --- REMOVE ALERT ---
 function removeAlert(id){
   if(emergencyMarkers[id]) map.removeLayer(emergencyMarkers[id]);
-  if(routeLines[id]) map.removeLayer(routeLines[id]);
+  if(routeLines[id]) routeLines[id].forEach(l=>map.removeLayer(l));
   delete routeLines[id];
 }
 </script>
