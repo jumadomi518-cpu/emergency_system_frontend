@@ -142,6 +142,9 @@ let ws, activeAssignment = null;
 const emergencyMarkers = {}, responderMarkers = {}, routeLines = {};
 const animationFrames = {};
 let currentWatchId = null;
+const userId = localStorage.getItem("userId");
+
+
 
 // --- MAP SETUP ---
 const map = L.map("map").setView([0, 0], 2);
@@ -333,7 +336,7 @@ function showAssignmentUI(msg) {
 
 
 function respondToAssignment(alertId, accept) {
-  ws.send(JSON.stringify({ type: "RESPONDER_RESPONSE", alertId, accept }));
+  ws.send(JSON.stringify({ type: "RESPONDER_RESPONSE", userId: userId, alertId, accept }));
 
   if (accept) {
     document.getElementById(`status-${alertId}`).innerText = "Accepted";
