@@ -160,11 +160,9 @@ let currentWatchId = null;
 
 // RESPONDER ICON
 const responderIcon = L.divIcon({
-  html:`<div id="responderArrow" style="
-        width:30px;height:30px;
-        background:url('https://cdn-icons-png.flaticon.com/512/684/684908.png') no-repeat center;
-        background-size:contain;
-        transform:rotate(180deg);"></div>`,
+  html:`<svg width="30" height="30" viewBox="0 0 100 100">
+          <polygon points="50,100 0,0 100,0" fill="blue"/>
+        </svg>`,
   className:"",
   iconSize:[30,30]
 });
