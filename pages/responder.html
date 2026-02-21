@@ -472,19 +472,19 @@ window.addEventListener("deviceorientation", (event) => {
   const arrow = document.getElementById("responderArrow");
   if (!arrow) return;
 
-  let deviceHeading = event.alpha;
+  let deviceHeading;
 
-  // iOS adjustment
+  // iOS
   if (typeof event.webkitCompassHeading !== "undefined") {
     deviceHeading = event.webkitCompassHeading;
-  } else if (event.absolute === true) {
-    // Android adjustment
-    deviceHeading = 360 - deviceHeading;
+  } 
+  // Android
+  else {
+    deviceHeading = event.alpha;
   }
 
   arrow._deviceHeading = deviceHeading;
 
-  //  Update arrow rotation immediately
   updateHeading(
     arrow._currentLat || 0,
     arrow._currentLng || 0,
