@@ -5,38 +5,122 @@
   <meta charset="UTF-8" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; font-family:"Poppins",sans-serif;}
-    body { padding:10px; }
-    h2 { text-align:center; margin-bottom:10px; }
-    #map { height:400px; margin-bottom:10px; }
-    table { width:100%; border-collapse:collapse; }
-    th,td { border:1px solid #ccc; padding:6px; text-align:center; }
-    button { padding:5px 8px; border:none; border-radius:4px; cursor:pointer; }
-    .accept { background:green; color:white;}
-    .reject { background:red; color:white;}
-    .resolve { background:purple; color:white;}
-    .routeOption { background:#007bff; color:white; margin:2px;}
-    #routeInfo { margin-top:8px; font-size:14px; }
+    
+ * { 
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box; 
+      font-family: "Poppins",sans-serif;
+    }
+  
+    h2 { 
+      text-align: center; 
+  
+      padding: 0.5em;
+      background-color: whitesmoke;
+    }
+
+     
+    
+    #map { 
+      height: 400px; 
+      margin-bottom: 10px; 
+    }
+    table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      height: 70vh;
+    }
+    
+    .table {
+      padding: 0.5em;
+    }
+    th,td { 
+      border: 1px solid #ccc; 
+      padding: 6px; 
+      text-align: center; 
+    }
+    button { 
+      font-size: 1.1rem;
+      padding: 5px 8px; 
+      border: none; 
+      border-radius: 4px; 
+      cursor: pointer; 
+      width: 20%;
+      background-color: magenta;
+      color: white;
+    }
+    .accept { 
+      background: green; 
+      color: white;
+    }
+    .reject { 
+      background: red; 
+      color: white;
+    }
+    .resolve { 
+      background: purple; 
+      color: white;
+    }
+    .routeOption { 
+      background: #007bff; 
+      color: white; 
+      margin: 2px;
+    }
+    #routeInfo { 
+      margin-top: 8px; 
+      font-size: 14px; 
+    }
     #debugPanel {
       position:fixed; bottom:0; left:0; width:100%;
       max-height:150px; overflow-y:auto;
       background:rgba(0,0,0,0.8); color:#0f0;
       font-size:11px; padding:5px; font-family:monospace;
     }
+.routeCard {
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.routeCard span {
+  display: inline-block;
+  margin-right: 10px;
+  font-size: 14px;
+}
+
+.routeCard button {
+  float: right;
+  padding: 4px 10px;
+  border: none;
+  background: #1976d2;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.routeCard.selected {
+  border: 2px solid #1976d2;
+  background: #e3f2fd;
+}
   </style>
 </head>
 <body>
 
 <h2>Emergency Response Dashboard</h2>
-<div id="map"></div>
-<div id="routeInfo"></div>
-
+<div class="table">
 <table>
 <thead>
-<tr><th>Name</th><th>Phone</th><th>Message</th><th>Action</th></tr>
+<tr><th>Name</th><th>Phone</th><th>Message</th><th>Action</th><th>waiting</th></tr>
 </thead>
 <tbody id="rows"></tbody>
 </table>
+</div>
+<div id="routeInfo">
+</div>
+<div id="map"></div>
 
 <div id="debugPanel"></div>
 
@@ -232,48 +316,129 @@ function startNavigation(alertId, destLat, destLng){
 }
 
 
-// FETCH ROUTES (OSRM)
-function fetchRoutes(alertId,sLat,sLng,dLat,dLng){
+function fetchRoutes(alertId, sLat, sLng, dLat, dLng) {
 
   fetch(`https://router.project-osrm.org/route/v1/driving/${sLng},${sLat};${dLng},${dLat}?alternatives=true&overview=full&geometries=geojson`)
-  .then(r=>r.json())
-  .then(data=>{
-    if(!data.routes) return;
+  .then(r => r.json())
+  .then(data => {
+
+    if (!data.routes || data.routes.length === 0) return;
 
     const routeDiv = document.getElementById("routeInfo");
-    routeDiv.innerHTML="";
+    routeDiv.innerHTML = "";
 
-    data.routes.forEach((route,index)=>{
+    // Clear old routes
+    if (!routeLines[alertId]) routeLines[alertId] = [];
+    routeLines[alertId].forEach(line => map.removeLayer(line));
+    routeLines[alertId] = [];
 
-      const coords = route.geometry.coordinates.map(c=>[c[1],c[0]]);
-      const distance = (route.distance/1000).toFixed(2);
-      const duration = (route.duration/60).toFixed(1);
+    const colors = ["blue", "green", "red", "orange", "purple"];
+
+    // Find best route (shortest distance + shortest duration)
+    let bestIndex = 0;
+    let bestScore = Infinity;
+
+    data.routes.forEach((route, index) => {
+      const score = route.distance + route.duration;
+      if (score < bestScore) {
+        bestScore = score;
+        bestIndex = index;
+      }
+    });
+
+    data.routes.forEach((route, index) => {
+
+      const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+      const distance = (route.distance / 1000).toFixed(2);
+      const duration = (route.duration / 60).toFixed(1);
+
+      // Draw ALL routes
+      const polyline = L.polyline(coords, {
+        color: colors[index % colors.length],
+        weight: index === bestIndex ? 6 : 4,
+        opacity: index === bestIndex ? 1 : 0.6
+      }).addTo(map);
+
+      routeLines[alertId].push(polyline);
+
+      // Create route card
+      const card = document.createElement("div");
+      card.className = "routeCard";
+
+      const routeName = document.createElement("h4");
+      routeName.innerText = `Route ${String.fromCharCode(65 + index)}`;
+
+      const distanceSpan = document.createElement("span");
+      distanceSpan.innerText = `Distance: ${distance} km`;
+
+      const durationSpan = document.createElement("span");
+      durationSpan.innerText = `Duration: ${duration} min`;
 
       const btn = document.createElement("button");
-      btn.innerText=`Route ${index+1} - ${distance} km - ${duration} min`;
+      btn.innerText = index === bestIndex ? "Preferred" : "Use";
 
-      btn.onclick=()=>{
-        if(routeLines[alertId]) map.removeLayer(routeLines[alertId]);
+      if (index === bestIndex) {
+        card.classList.add("selected");
+      }
 
-        routeLines[alertId] = L.polyline(coords,{color:"blue"}).addTo(map);
-        map.fitBounds(routeLines[alertId].getBounds());
+      btn.onclick = () => {
 
-        routeDiv.innerHTML=`Selected Route: ${distance} km - ${duration} min`;
+        // Update UI highlight
+        document.querySelectorAll(".routeCard").forEach(c => {
+          c.classList.remove("selected");
+          c.querySelector("button").innerText = "Use";
+        });
 
+        card.classList.add("selected");
+        btn.innerText = "Selected";
+
+        // Highlight selected route
+        routeLines[alertId].forEach((line, i) => {
+          line.setStyle({
+            weight: i === index ? 6 : 4,
+            opacity: i === index ? 1 : 0.6
+          });
+        });
+
+        map.fitBounds(polyline.getBounds());
+
+        // Send FULL route coordinates to server
         ws.send(JSON.stringify({
-          type:"SELECTED_ROUTE",
+          type: "SELECTED_ROUTE",
           alertId,
-          routeIndex:index,
+          routeIndex: index,
           distance,
           duration,
           routeCoordinates: coords
         }));
       };
 
-      routeDiv.appendChild(btn);
+      card.appendChild(routeName);
+      card.appendChild(distanceSpan);
+      card.appendChild(document.createElement("br"));
+      card.appendChild(durationSpan);
+      card.appendChild(document.createElement("br"));
+      card.appendChild(btn);
+
+      routeDiv.appendChild(card);
+
+      // AUTO SEND BEST ROUTE TO SERVER
+      if (index === bestIndex) {
+        ws.send(JSON.stringify({
+          type: "SELECTED_ROUTE",
+          alertId,
+          routeIndex: bestIndex,
+          distance,
+          duration,
+          routeCoordinates: coords
+        }));
+      }
     });
+
+    map.fitBounds(routeLines[alertId][bestIndex].getBounds());
   });
 }
+    
 
 
 function updateHeading(currentLat, currentLng, destLat, destLng) {
