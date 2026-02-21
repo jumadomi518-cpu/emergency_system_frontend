@@ -341,14 +341,22 @@ function showAssignmentUI(msg) {
   document.getElementById("rows").appendChild(row);
 }
 
+
 function respondToAssignment(alertId, accept) {
   ws.send(JSON.stringify({ type: "RESPONDER_RESPONSE", alertId, accept }));
 
   if (accept) {
     document.getElementById(`status-${alertId}`).innerText = "Accepted";
     startNavigation(alertId, activeAssignment.latitude, activeAssignment.longitude);
+
+    // Fetch routes after getting current location
+    navigator.geolocation.getCurrentPosition(pos => {
+      fetchRoutes(alertId, pos.coords.latitude, pos.coords.longitude,
+                  activeAssignment.latitude, activeAssignment.longitude);
+    }, console.error, { enableHighAccuracy: true });
   }
 }
+
 
 // NAVIGATION 
 function startNavigation(alertId, destLat, destLng) {
