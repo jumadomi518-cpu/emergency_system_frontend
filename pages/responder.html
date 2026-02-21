@@ -464,7 +464,7 @@ function updateHeading(currentLat, currentLng, destLat, destLng) {
 
   // Apply rotation with smooth transition
   arrow.style.transition = "transform 0.2s ease-out";
-  arrow.style.transform = `rotate(${newRotation + 360}deg)`;
+  arrow.style.transform = `rotate(${newRotation - 360}deg)`;
 }
 
 // Device orientation listener (real-time compass)
