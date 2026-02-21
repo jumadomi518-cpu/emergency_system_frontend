@@ -440,14 +440,18 @@ function fetchRoutes(alertId, sLat, sLng, dLat, dLng) {
     
 
 
+const toRad = deg => deg * Math.PI / 180;
+const toDeg = rad => rad * 180 / Math.PI;
+
+// Main updateHeading function (signature unchanged)
 function updateHeading(currentLat, currentLng, destLat, destLng) {
   const arrow = document.getElementById("responderArrow");
   if (!arrow) return;
 
-  // Use device heading directly
+  // Device heading (0–360)
   const deviceHeading = arrow._deviceHeading || 0;
 
-  // Smooth rotation using previous rotation
+  // Smooth rotation
   const currentRotation = arrow._currentRotation || 0;
   let delta = deviceHeading - currentRotation;
 
@@ -458,13 +462,39 @@ function updateHeading(currentLat, currentLng, destLat, destLng) {
   const newRotation = currentRotation + delta;
   arrow._currentRotation = newRotation;
 
-  // Apply rotation smoothly
+  // Apply rotation with smooth transition
   arrow.style.transition = "transform 0.2s ease-out";
   arrow.style.transform = `rotate(${newRotation}deg)`;
 }
-  
 
-// watch device location
+// Device orientation listener (real-time compass)
+window.addEventListener("deviceorientation", (event) => {
+  const arrow = document.getElementById("responderArrow");
+  if (!arrow) return;
+
+  let deviceHeading = event.alpha;
+
+  // iOS adjustment
+  if (typeof event.webkitCompassHeading !== "undefined") {
+    deviceHeading = event.webkitCompassHeading;
+  } else if (event.absolute === true) {
+    // Android adjustment
+    deviceHeading = 360 - deviceHeading;
+  }
+
+  arrow._deviceHeading = deviceHeading;
+
+  //  Update arrow rotation immediately
+  updateHeading(
+    arrow._currentLat || 0,
+    arrow._currentLng || 0,
+    arrow._destLat || 0,
+    arrow._destLng || 0
+  );
+});
+
+
+// Watch device location 
 navigator.geolocation.watchPosition(
   (pos) => {
     const arrow = document.getElementById("responderArrow");
@@ -474,21 +504,17 @@ navigator.geolocation.watchPosition(
     arrow._currentLat = pos.coords.latitude;
     arrow._currentLng = pos.coords.longitude;
 
-    // If you already know destination, call updateHeading automatically
-    if (arrow._destLat != null && arrow._destLng != null) {
-      updateHeading(
-        arrow._currentLat,
-        arrow._currentLng,
-        arrow._destLat,
-        arrow._destLng
-      );
-    }
+    // Call updateHeading to keep signature consistent
+    updateHeading(
+      arrow._currentLat,
+      arrow._currentLng,
+      arrow._destLat || 0,
+      arrow._destLng || 0
+    );
   },
   (err) => console.error("Geolocation error:", err),
   { enableHighAccuracy: true, maximumAge: 1000 }
 );
-
-
 
 
 // REMOVE ALERT
