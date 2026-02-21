@@ -126,7 +126,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-// --- UTILS & LOGGING ---
 function log(msg) {
   const panel = document.getElementById("debugPanel");
   const time = new Date().toLocaleTimeString();
@@ -139,6 +138,7 @@ const WS_URL = "wss://campus-emergency-server.onrender.com";
 const role = localStorage.getItem("role");
 let ws, activeAssignment = null;
 const emergencyMarkers = {}, responderMarkers = {}, routeLines = {};
+const animationFrames = {}; // Keep separate animation per marker
 let currentWatchId = null;
 
 // --- MAP SETUP ---
@@ -146,55 +146,48 @@ const map = L.map("map").setView([0, 0], 2);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
 const responderIcon = L.icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // Ensure this is a top-down arrow
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // top-down arrow
   iconSize: [40, 40],
   iconAnchor: [20, 20]
 });
 
 // --- MATH: BEARING & INTERPOLATION ---
-// Calculates the angle between two coordinates
 function getBearing(lat1, lon1, lat2, lon2) {
   const y = Math.sin((lon2 - lon1) * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180);
   const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
-    Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lon2 - lon1) * Math.PI / 180);
+            Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lon2 - lon1) * Math.PI / 180);
   return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
 }
 
 // --- SMOOTH MOVEMENT ENGINE ---
-let lastCoords = null;
-let animationFrame = null;
-
 function animateMarker(marker, startPos, endPos, duration = 1000) {
   const startTime = performance.now();
   const bearing = getBearing(startPos[0], startPos[1], endPos[0], endPos[1]);
 
-  if (animationFrame) cancelAnimationFrame(animationFrame);
+  // Cancel previous animation for this marker
+  if (animationFrames[marker._leaflet_id]) cancelAnimationFrame(animationFrames[marker._leaflet_id]);
 
   function step(now) {
     const elapsed = now - startTime;
     const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 2);
 
-    // Ease-out progress for smoother stops
-    const easedProgress = 1 - Math.pow(1 - progress, 2);
-
-    const lat = startPos[0] + (endPos[0] - startPos[0]) * easedProgress;
-    const lng = startPos[1] + (endPos[1] - startPos[1]) * easedProgress;
-
+    const lat = startPos[0] + (endPos[0] - startPos[0]) * eased;
+    const lng = startPos[1] + (endPos[1] - startPos[1]) * eased;
     marker.setLatLng([lat, lng]);
-    
-    // Apply rotation safely without breaking Leaflet's internal translation
+
     if (marker._icon) {
-        const transform = marker._icon.style.transform;
-        // Clean existing rotation to prevent stacking
-        const baseTransform = transform.replace(/rotate\([^)]+\)/g, "");
-        marker._icon.style.transform = `${baseTransform} rotate(${bearing}deg)`;
+      marker._icon.style.transform = `rotate(${bearing}deg) translate(-50%, -50%)`;
     }
 
     if (progress < 1) {
-      animationFrame = requestAnimationFrame(step);
+      animationFrames[marker._leaflet_id] = requestAnimationFrame(step);
+    } else {
+      delete animationFrames[marker._leaflet_id];
     }
   }
-  animationFrame = requestAnimationFrame(step);
+
+  animationFrames[marker._leaflet_id] = requestAnimationFrame(step);
 }
 
 // --- WEBSOCKETS ---
@@ -221,7 +214,7 @@ function requestInitialLocation() {
       latitude: pos.coords.latitude,
       longitude: pos.coords.longitude
     }));
-  }, null, { enableHighAccuracy: true });
+  }, console.error, { enableHighAccuracy: true });
 }
 
 // --- UI & NAVIGATION ---
@@ -256,23 +249,21 @@ function startNavigation(alertId, destLat, destLng) {
     responderMarkers[alertId] = L.marker([0, 0], { icon: responderIcon }).addTo(map);
   }
 
-  // First fetch to draw the path
   navigator.geolocation.getCurrentPosition(pos => {
     const start = [pos.coords.latitude, pos.coords.longitude];
-    lastCoords = start;
     responderMarkers[alertId].setLatLng(start);
     fetchRoutes(alertId, start[0], start[1], destLat, destLng);
   });
 
-  // Continuous watch for movement
   currentWatchId = navigator.geolocation.watchPosition(pos => {
     const newCoords = [pos.coords.latitude, pos.coords.longitude];
-    
-    if (lastCoords) {
-      animateMarker(responderMarkers[alertId], lastCoords, newCoords, 1000);
+    const marker = responderMarkers[alertId];
+
+    if (marker._latlng) {
+      animateMarker(marker, [marker._latlng.lat, marker._latlng.lng], newCoords, 1000);
+    } else {
+      marker.setLatLng(newCoords);
     }
-    
-    lastCoords = newCoords;
 
     ws.send(JSON.stringify({
       type: "LOCATION_UPDATE",
@@ -280,11 +271,7 @@ function startNavigation(alertId, destLat, destLng) {
       latitude: newCoords[0],
       longitude: newCoords[1]
     }));
-  }, console.error, { 
-    enableHighAccuracy: true,
-    maximumAge: 0,
-    timeout: 5000 
-  });
+  }, console.error, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
 }
 
 // --- ROUTING (OSRM) ---
@@ -293,7 +280,7 @@ function fetchRoutes(alertId, sLat, sLng, dLat, dLng) {
     .then(r => r.json())
     .then(data => {
       if (!data.routes?.length) return;
-      
+
       if (routeLines[alertId]) routeLines[alertId].forEach(l => map.removeLayer(l));
       routeLines[alertId] = [];
 
@@ -310,6 +297,8 @@ function removeAlert(id) {
   if (routeLines[id]) routeLines[id].forEach(l => map.removeLayer(l));
   if (responderMarkers[id]) map.removeLayer(responderMarkers[id]);
   delete routeLines[id];
+  delete responderMarkers[id];
+  delete emergencyMarkers[id];
 }
 
 connectWS();
