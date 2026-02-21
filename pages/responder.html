@@ -440,34 +440,99 @@ function fetchRoutes(alertId, sLat, sLng, dLat, dLng) {
     
 
 
+// Helpers
+const toRad = deg => deg * Math.PI / 180;
+const toDeg = rad => rad * 180 / Math.PI;
+
+
+
 function updateHeading(currentLat, currentLng, destLat, destLng) {
+  const arrow = document.getElementById("responderArrow");
+  if (!arrow) return;
 
-  // Convert degrees to radians
-  const toRad = deg => deg * Math.PI / 180;
-  const toDeg = rad => rad * 180 / Math.PI;
-
+  // Calculate bearing to destination
   const φ1 = toRad(currentLat);
   const φ2 = toRad(destLat);
   const Δλ = toRad(destLng - currentLng);
 
-  // Bearing calculation
   const y = Math.sin(Δλ) * Math.cos(φ2);
-  const x =
-    Math.cos(φ1) * Math.sin(φ2) -
-    Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  const x = Math.cos(φ1) * Math.sin(φ2) -
+            Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
 
-  let bearing = Math.atan2(y, x);
+  let bearing = (toDeg(Math.atan2(y, x)) + 360) % 360;
 
-  // Convert radians → degrees
-  bearing = toDeg(bearing);
+  // Get device heading if available
+  const deviceHeading = arrow._deviceHeading || 0;
 
-  // Normalize to 0–360
-  bearing = (bearing + 360) % 360;
+  // Compute rotation relative to device orientation
+  let rotation = (bearing - deviceHeading + 360) % 360;
 
-  // Rotate arrow
+  // Smooth rotation using previous rotation
+  const currentRotation = arrow._currentRotation || 0;
+  let delta = rotation - currentRotation;
+  if (delta > 180) delta -= 360;
+  if (delta < -180) delta += 360;
+
+  const newRotation = currentRotation + delta;
+  arrow._currentRotation = newRotation;
+
+  // Apply rotation
+  arrow.style.transition = "transform 0.2s ease-out";
+  arrow.style.transform = `rotate(${newRotation}deg)`;
+}
+
+// Device orientation listener
+window.addEventListener("deviceorientation", (event) => {
   const arrow = document.getElementById("responderArrow");
-  if (arrow) {
-    arrow.style.transform = `rotate(${bearing}deg)`;
+  if (!arrow) return;
+
+  let deviceHeading = event.alpha;
+
+  // iOS adjustment
+  if (typeof event.webkitCompassHeading !== "undefined") {
+    deviceHeading = event.webkitCompassHeading;
+  } else if (event.absolute === true) {
+    // Android adjustment
+    deviceHeading = 360 - deviceHeading;
+  }
+
+  arrow._deviceHeading = deviceHeading;
+});
+
+// watch device location
+navigator.geolocation.watchPosition(
+  (pos) => {
+    const arrow = document.getElementById("responderArrow");
+    if (!arrow) return;
+
+    // Store latest location
+    arrow._currentLat = pos.coords.latitude;
+    arrow._currentLng = pos.coords.longitude;
+
+    // If you already know destination, call updateHeading automatically
+    if (arrow._destLat != null && arrow._destLng != null) {
+      updateHeading(
+        arrow._currentLat,
+        arrow._currentLng,
+        arrow._destLat,
+        arrow._destLng
+      );
+    }
+  },
+  (err) => console.error("Geolocation error:", err),
+  { enableHighAccuracy: true, maximumAge: 1000 }
+);
+
+// Initialize destination
+function setDestination(lat, lng) {
+  const arrow = document.getElementById("responderArrow");
+  if (!arrow) return;
+  arrow._destLat = lat;
+  arrow._destLng = lng;
+
+  // If location already known, immediately update heading
+  if (arrow._currentLat != null && arrow._currentLng != null) {
+    updateHeading(arrow._currentLat, arrow._currentLng, lat, lng);
   }
 }
 
