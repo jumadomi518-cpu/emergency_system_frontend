@@ -77,11 +77,9 @@
       font-size:11px; padding:5px; font-family:monospace;
     }
 .routeCard {
-  border: 1px solid #ddd;
-  padding: 10px;
-  margin-bottom: 8px;
-  border-radius: 6px;
-  background: #fff;
+  font-size: 1.2rem;
+  display: flex;
+  justify-content: space-between;
 }
 
 .routeCard span {
@@ -91,7 +89,6 @@
 }
 
 .routeCard button {
-  float: right;
   padding: 4px 10px;
   border: none;
   background: #1976d2;
@@ -336,6 +333,7 @@ function showAssignmentUI(msg) {
     <td>${msg.message}</td>
     <td id="status-${msg.alertId}">
       <button onclick="respondToAssignment(${msg.alertId}, true)">Accept</button>
+      <button onclick="respondToAssignment(${msg.alertId}, false)">Reject</button>
     </td>
   `;
   document.getElementById("rows").appendChild(row);
@@ -354,7 +352,10 @@ function respondToAssignment(alertId, accept) {
       fetchRoutes(alertId, pos.coords.latitude, pos.coords.longitude,
                   activeAssignment.latitude, activeAssignment.longitude);
     }, console.error, { enableHighAccuracy: true });
-  }
+  } else {
+
+  document.getElementById(`status-${alertId}`).innerText = "Rejected";
+   }
 }
 
 
