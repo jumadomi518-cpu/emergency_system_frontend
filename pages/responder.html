@@ -126,306 +126,194 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-// --- LOG ---
-function log(msg){
+// --- UTILS & LOGGING ---
+function log(msg) {
   const panel = document.getElementById("debugPanel");
   const time = new Date().toLocaleTimeString();
-  panel.innerText += `[${time}] ${typeof msg==="object"?JSON.stringify(msg):msg}\n`;
+  panel.innerText += `[${time}] ${typeof msg === "object" ? JSON.stringify(msg) : msg}\n`;
   panel.scrollTop = panel.scrollHeight;
 }
 
-// --- SERVICE WORKER ---
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/swr.js")
-    .then(() => log("SW registered"))
-    .catch(err => log("SW registration failed: " + err));
-}
-
-// --- CONFIG ---
+// --- CONFIG & STATE ---
 const WS_URL = "wss://campus-emergency-server.onrender.com";
 const role = localStorage.getItem("role");
-let ws;
-let activeAssignment = null;
-
-// --- MAP ---
-const map = L.map("map").setView([0,0],2);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
-const emergencyMarkers = {};
-const responderMarkers = {};
-const routeLines = {};
+let ws, activeAssignment = null;
+const emergencyMarkers = {}, responderMarkers = {}, routeLines = {};
 let currentWatchId = null;
 
-// --- ARROW ICON ---
+// --- MAP SETUP ---
+const map = L.map("map").setView([0, 0], 2);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
 const responderIcon = L.icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // Ensure this is a top-down arrow
   iconSize: [40, 40],
   iconAnchor: [20, 20]
 });
 
-// --- WEBSOCKET ---
-function connectWS(){
-  ws = new WebSocket(WS_URL);
-
-  ws.onopen = () => {
-    const token = localStorage.getItem("token");
-    if(token) ws.send(JSON.stringify({ token }));
-    log("WS Connected");
-    log("Role: " + role);
-  };
-
-  ws.onclose = ()=>{
-    log("WS Reconnecting...");
-    setTimeout(connectWS,3000);
-  };
-
-  ws.onmessage = handleWSMessage;
+// --- MATH: BEARING & INTERPOLATION ---
+// Calculates the angle between two coordinates
+function getBearing(lat1, lon1, lat2, lon2) {
+  const y = Math.sin((lon2 - lon1) * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180);
+  const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+    Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lon2 - lon1) * Math.PI / 180);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
 }
-connectWS();
 
-// --- HANDLE MESSAGES ---
-function handleWSMessage(e){
-  const msg = JSON.parse(e.data);
-  log(msg);
+// --- SMOOTH MOVEMENT ENGINE ---
+let lastCoords = null;
+let animationFrame = null;
 
-  if(msg.type === "AUTH_SUCCESS"){
-    if(navigator.geolocation){
-      navigator.geolocation.getCurrentPosition(pos => {
-        ws.send(JSON.stringify({
-          type:"LOCATION_UPDATE",
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude
-        }));
-      }, console.error, { enableHighAccuracy:true });
+function animateMarker(marker, startPos, endPos, duration = 1000) {
+  const startTime = performance.now();
+  const bearing = getBearing(startPos[0], startPos[1], endPos[0], endPos[1]);
+
+  if (animationFrame) cancelAnimationFrame(animationFrame);
+
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // Ease-out progress for smoother stops
+    const easedProgress = 1 - Math.pow(1 - progress, 2);
+
+    const lat = startPos[0] + (endPos[0] - startPos[0]) * easedProgress;
+    const lng = startPos[1] + (endPos[1] - startPos[1]) * easedProgress;
+
+    marker.setLatLng([lat, lng]);
+    
+    // Apply rotation safely without breaking Leaflet's internal translation
+    if (marker._icon) {
+        const transform = marker._icon.style.transform;
+        // Clean existing rotation to prevent stacking
+        const baseTransform = transform.replace(/rotate\([^)]+\)/g, "");
+        marker._icon.style.transform = `${baseTransform} rotate(${bearing}deg)`;
+    }
+
+    if (progress < 1) {
+      animationFrame = requestAnimationFrame(step);
     }
   }
-
-  if(msg.type === "EMERGENCY_ASSIGNMENT" && role !== "user"){
-    showAssignmentUI(msg);
-    log("Emergency Assignment received");
-  }
-
-  if(msg.type === "RESPONDER_ACCEPTED"){
-    log("Responder accepted alert " + msg.alertId);
-  }
-
-  if(msg.type === "ALERT_RESOLVED"){
-    removeAlert(msg.alertId);
-  }
+  animationFrame = requestAnimationFrame(step);
 }
 
-// --- SHOW ASSIGNMENT ---
-function showAssignmentUI(msg){
+// --- WEBSOCKETS ---
+function connectWS() {
+  ws = new WebSocket(WS_URL);
+  ws.onopen = () => {
+    const token = localStorage.getItem("token");
+    if (token) ws.send(JSON.stringify({ token }));
+    log("WS Connected. Role: " + role);
+  };
+  ws.onclose = () => setTimeout(connectWS, 3000);
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === "AUTH_SUCCESS") requestInitialLocation();
+    if (msg.type === "EMERGENCY_ASSIGNMENT" && role !== "user") showAssignmentUI(msg);
+    if (msg.type === "ALERT_RESOLVED") removeAlert(msg.alertId);
+  };
+}
+
+function requestInitialLocation() {
+  navigator.geolocation.getCurrentPosition(pos => {
+    ws.send(JSON.stringify({
+      type: "LOCATION_UPDATE",
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude
+    }));
+  }, null, { enableHighAccuracy: true });
+}
+
+// --- UI & NAVIGATION ---
+function showAssignmentUI(msg) {
   activeAssignment = msg;
-
-  if(!emergencyMarkers[msg.alertId]){
-    emergencyMarkers[msg.alertId] = L.marker([msg.latitude,msg.longitude]).addTo(map);
+  if (!emergencyMarkers[msg.alertId]) {
+    emergencyMarkers[msg.alertId] = L.marker([msg.latitude, msg.longitude]).addTo(map);
   }
-
   const row = document.createElement("tr");
   row.innerHTML = `
-    <td>${msg.name || "Unknown"}</td>
-    <td>${msg.phone || "Unknown"}</td>
+    <td>${msg.name || "User"}</td>
     <td>${msg.message}</td>
-    <td class="status">
+    <td id="status-${msg.alertId}">
       <button onclick="respondToAssignment(${msg.alertId}, true)">Accept</button>
-      <button onclick="respondToAssignment(${msg.alertId}, false)">Reject</button>
     </td>
   `;
   document.getElementById("rows").appendChild(row);
 }
 
-// --- RESPOND TO ASSIGNMENT ---
-function respondToAssignment(alertId, accept){
-  const status = document.querySelector(".status");
-  ws.send(JSON.stringify({
-    type:"RESPONDER_RESPONSE",
-    alertId,
-    accept
-  }));
-
-  if(accept && activeAssignment){
-    status.innerText = "Accepted";
+function respondToAssignment(alertId, accept) {
+  ws.send(JSON.stringify({ type: "RESPONDER_RESPONSE", alertId, accept }));
+  if (accept) {
+    document.getElementById(`status-${alertId}`).innerText = "Accepted";
     startNavigation(alertId, activeAssignment.latitude, activeAssignment.longitude);
-  } else {
-    status.innerText = "Rejected";
   }
 }
 
-// --- START NAVIGATION ---
-function startNavigation(alertId, destLat, destLng){
-  if(currentWatchId) navigator.geolocation.clearWatch(currentWatchId);
+function startNavigation(alertId, destLat, destLng) {
+  if (currentWatchId) navigator.geolocation.clearWatch(currentWatchId);
 
-  if(!responderMarkers[alertId]){
-    responderMarkers[alertId] = L.marker([0,0], {icon: responderIcon}).addTo(map);
+  if (!responderMarkers[alertId]) {
+    responderMarkers[alertId] = L.marker([0, 0], { icon: responderIcon }).addTo(map);
   }
 
-  let lastPos = null;
-
-  function moveMarkerSmooth(newLat, newLng){
-    if(!lastPos){
-      responderMarkers[alertId].setLatLng([newLat,newLng]);
-      lastPos = [newLat,newLng];
-      return;
-    }
-
-    const frames = 10;
-    const latStep = (newLat - lastPos[0])/frames;
-    const lngStep = (newLng - lastPos[1])/frames;
-
-    let i=0;
-    function animate(){
-      if(i<frames){
-        const lat = lastPos[0] + latStep*(i+1);
-        const lng = lastPos[1] + lngStep*(i+1);
-        responderMarkers[alertId].setLatLng([lat,lng]);
-
-        // Heading based on movement
-        const dx = newLng - lastPos[1];
-        const dy = newLat - lastPos[0];
-        const angle = Math.atan2(dx, dy) * 180/Math.PI;
-        rotateResponderMarker(alertId, angle);
-
-        i++;
-        requestAnimationFrame(animate);
-      } else {
-        lastPos = [newLat,newLng];
-      }
-    }
-    animate();
-  }
-
-  navigator.geolocation.getCurrentPosition(pos=>{
-    moveMarkerSmooth(pos.coords.latitude,pos.coords.longitude);
-    fetchRoutes(alertId,pos.coords.latitude,pos.coords.longitude,destLat,destLng);
+  // First fetch to draw the path
+  navigator.geolocation.getCurrentPosition(pos => {
+    const start = [pos.coords.latitude, pos.coords.longitude];
+    lastCoords = start;
+    responderMarkers[alertId].setLatLng(start);
+    fetchRoutes(alertId, start[0], start[1], destLat, destLng);
   });
 
-  currentWatchId = navigator.geolocation.watchPosition(pos=>{
-    moveMarkerSmooth(pos.coords.latitude,pos.coords.longitude);
+  // Continuous watch for movement
+  currentWatchId = navigator.geolocation.watchPosition(pos => {
+    const newCoords = [pos.coords.latitude, pos.coords.longitude];
+    
+    if (lastCoords) {
+      animateMarker(responderMarkers[alertId], lastCoords, newCoords, 1000);
+    }
+    
+    lastCoords = newCoords;
 
     ws.send(JSON.stringify({
-      type:"LOCATION_UPDATE",
+      type: "LOCATION_UPDATE",
       alertId,
-      latitude: pos.coords.latitude,
-      longitude: pos.coords.longitude
+      latitude: newCoords[0],
+      longitude: newCoords[1]
     }));
-  }, console.error, { enableHighAccuracy:true });
+  }, console.error, { 
+    enableHighAccuracy: true,
+    maximumAge: 0,
+    timeout: 5000 
+  });
 }
 
-// --- FETCH ROUTES ---
-function fetchRoutes(alertId, sLat, sLng, dLat, dLng){
-  fetch(`https://router.project-osrm.org/route/v1/driving/${sLng},${sLat};${dLng},${dLat}?alternatives=true&overview=full&geometries=geojson`)
-    .then(r=>r.json())
-    .then(data=>{
-      if(!data.routes || data.routes.length===0) return;
+// --- ROUTING (OSRM) ---
+function fetchRoutes(alertId, sLat, sLng, dLat, dLng) {
+  fetch(`https://router.project-osrm.org/route/v1/driving/${sLng},${sLat};${dLng},${dLat}?overview=full&geometries=geojson`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.routes?.length) return;
+      
+      if (routeLines[alertId]) routeLines[alertId].forEach(l => map.removeLayer(l));
+      routeLines[alertId] = [];
 
-      const routeDiv = document.getElementById("routeInfo");
-      routeDiv.innerHTML = "";
-
-      if(!routeLines[alertId]) routeLines[alertId]=[];
-      routeLines[alertId].forEach(line=>map.removeLayer(line));
-      routeLines[alertId]=[];
-
-      const colors=["blue","green","red","orange","purple"];
-      let bestIndex=0, bestScore=Infinity;
-
-      data.routes.forEach((route,index)=>{
-        const score = route.distance + route.duration;
-        if(score<bestScore){ bestScore=score; bestIndex=index; }
-      });
-
-      data.routes.forEach((route,index)=>{
-        const coords = route.geometry.coordinates.map(c=>[c[1],c[0]]);
-        const distance = (route.distance/1000).toFixed(2);
-        const duration = (route.duration/60).toFixed(1);
-
-        const polyline = L.polyline(coords,{
-          color: colors[index%colors.length],
-          weight: index===bestIndex?6:4,
-          opacity: index===bestIndex?1:0.6
-        }).addTo(map);
-        routeLines[alertId].push(polyline);
-
-        const card=document.createElement("div");
-        card.className="routeCard";
-        if(index===bestIndex) card.classList.add("selected");
-
-        const btn=document.createElement("button");
-        btn.innerText = index===bestIndex?"Preferred":"Use";
-        btn.onclick=()=>{
-          document.querySelectorAll(".routeCard").forEach(c=>{
-            c.classList.remove("selected");
-            c.querySelector("button").innerText="Use";
-          });
-          card.classList.add("selected");
-          btn.innerText="Selected";
-          routeLines[alertId].forEach((line,i)=>{
-            line.setStyle({ weight:i===index?6:4, opacity:i===index?1:0.6 });
-          });
-          map.fitBounds(polyline.getBounds());
-          ws.send(JSON.stringify({
-            type:"SELECTED_ROUTE",
-            alertId,
-            routeIndex:index,
-            distance,
-            duration,
-            routeCoordinates: coords
-          }));
-        };
-
-        card.innerHTML=`<h4>Route ${String.fromCharCode(65+index)}</h4>
-                        Distance: ${distance} km<br>
-                        Duration: ${duration} min<br>`;
-        card.appendChild(btn);
-        routeDiv.appendChild(card);
-
-        if(index===bestIndex){
-          ws.send(JSON.stringify({
-            type:"SELECTED_ROUTE",
-            alertId,
-            routeIndex:index,
-            distance,
-            duration,
-            routeCoordinates: coords
-          }));
-        }
-      });
-
-      map.fitBounds(routeLines[alertId][bestIndex].getBounds());
+      const route = data.routes[0];
+      const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+      const polyline = L.polyline(coords, { color: 'blue', weight: 6 }).addTo(map);
+      routeLines[alertId].push(polyline);
+      map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
     });
 }
 
-// --- ROTATE MARKER ---
-function rotateResponderMarker(alertId, heading){
-  const marker = responderMarkers[alertId];
-  if(!marker||!marker._icon) return;
-  marker._icon.style.transform = `rotate(${heading}deg)`;
-  marker._icon.style.transformOrigin = "center center";
-}
-
-// --- DEVICE ORIENTATION ---
-window.addEventListener("deviceorientation", handleOrientation);
-window.addEventListener("deviceorientationabsolute", handleOrientation);
-
-function handleOrientation(event){
-  if(!activeAssignment) return;
-
-  let heading;
-  if(event.webkitCompassHeading!==undefined){
-    heading=event.webkitCompassHeading;
-  } else if(event.alpha!==null){
-    heading=360-event.alpha;
-  } else { heading=0; }
-
-  rotateResponderMarker(activeAssignment.alertId, heading);
-}
-
-// --- REMOVE ALERT ---
-function removeAlert(id){
-  if(emergencyMarkers[id]) map.removeLayer(emergencyMarkers[id]);
-  if(routeLines[id]) routeLines[id].forEach(l=>map.removeLayer(l));
+function removeAlert(id) {
+  if (emergencyMarkers[id]) map.removeLayer(emergencyMarkers[id]);
+  if (routeLines[id]) routeLines[id].forEach(l => map.removeLayer(l));
+  if (responderMarkers[id]) map.removeLayer(responderMarkers[id]);
   delete routeLines[id];
 }
+
+connectWS();
+
 </script>
 </body>
 </html>
