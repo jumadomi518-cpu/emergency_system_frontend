@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title></title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      font-family: "Poppins", sans-serif;
+      box-sizing: border-box;
+    }
+    
+    .map {
+      margin: 0.5em;
+      height: 40vh;
+      border: 2px solid green;
+    }
+    .timeAncestor {
+      font-size: 1.4rem;
+      padding: 1em 1em 1em 2em;
+      display: flex;
+      flex-direction: column;
+      
+    }
+    .waitingContainer {
+      display: flex;
+      width: 50%;
+      justify-content: space-between;
+      margin-top: 0.7em;
+    }
+    
+    input {
+      font-size: 1.5rem;
+      width: 60%;
+    }
+    button {
+      font-size: 1.4rem;
+      padding: 0.4em;
+      border: none;
+      background-color: green;
+      color: white;
+      border-radius: 0.3em;
+    }
+    
+    .view {
+      display: flex;
+      justify-content: flex-end;
+      font-size: 1.5rem;
+      margin: 0.5em;
+      padding: 0.3em;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5em;
+    }
+    
+    img {
+      height: 10vh;
+    }
+    
+    .height {
+      height: 100vh;
+    }
+    
+  </style>
+</head>
+
+<body>
+  <header>
+    <img src="../assets/1771060588592.png" id="logo" />
+<h1>Emergency Response System.</h1>
+  </header>
+  <main>
+    <div class="view"><p class="large">large</p></div>
+       <div id="map" class="map">
+      
+    </div>
+    <div class="timeAncestor">
+      <p>Waiting Time</p>
+      <div class="waitingContainer">
+        <input type="number" max="15" min="1" />
+        <button>send</button>
+      </div>
+    </div>
+  </main>
+  <script>
+  
+  if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/swt.js")
+    .then(() => console.log("SW registered"))
+    .catch(err => console.log("SW registration failed: " + err));
+}
+  
+
+const queryString = window.location.search;
+const urlParams = new URLSearchParams(queryString);
+
+const alertId = urlParams.get('alertId');
+  
+  const ma = document.getElementById("map");
+    const view = document.querySelector(".large");
+    const btn = document.querySelector("button");
+    const input = document.querySelector("input");
+    
+    let check = true;
+    view.onclick = () => {
+      ma.classList.toggle("height");
+      view.innerText = check ? "small" : "large";
+      check = !check;
+    }
+    
+    const WS_URL = "wss://campus-emergency-server.onrender.com";
+    
+    
+    
+    function connectWS() {
+      
+  ws = new WebSocket(WS_URL);
+
+  ws.onopen = () => {
+    const token = localStorage.getItem("token");
+    if (token) ws.send(JSON.stringify({ token }));
+  };
+
+  ws.onclose = () => setTimeout(connectWS, 3000);
+
+  
+  btn.onclick = () => {
+    if (input.value === "") {
+      alert("A value required");
+      return;
+    }
+
+    if (Number(input.value) < 1 || Number(input.value) > 15) {
+    alert("Enter a value between 1 and 15"); return;
+    }
+    ws.send(JSON.stringify({ type: "WAITING", waiting: input.value, alertId: alertId }))
+  }
+
+
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    
+  
+       }
+    }
+    connectWS();
+    
+  </script>
+</body>
+
+</html>
