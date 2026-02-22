@@ -319,7 +319,7 @@ async function handleWSMessage(event){
 
    log("SELECTED ROUTE RECEIVED TO THE CREATOR");
     const { alertId, coordsFromResponder, distance, duration } = msg;
-
+    log(msg);
     if (!coordsFromResponder?.length) return;
 
     routeCoordinates[alertId] = coordsFromResponder;
