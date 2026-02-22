@@ -316,6 +316,8 @@ async function handleWSMessage(event){
   }
 
   if (msg.type === "SELECTED_ROUTE") {
+
+   log("SELECTED ROUTE RECEIVED TO THE CREATOR");
     const { alertId, coordsFromResponder, distance, duration } = msg;
 
     if (!coordsFromResponder?.length) return;
@@ -330,7 +332,7 @@ async function handleWSMessage(event){
   }
 
   if (msg.type === "RESPONDER_LOCATION_UPDATE") {
-
+     log("NEW LOCATION RECEIVED");
     const { responderId, alertId, latitude, longitude } = msg;
     const newLatLng = [latitude, longitude];
 

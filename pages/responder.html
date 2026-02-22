@@ -320,7 +320,7 @@ function showAssignmentUI(msg) {
       fillOpacity: 1
     }).addTo(map);
   }
-
+  const rows = document.getElementById("rows");
   const row = document.createElement("tr");
   row.innerHTML = `
     <td>${msg.name}</td>
@@ -331,7 +331,9 @@ function showAssignmentUI(msg) {
       <button class="reject" onclick="respondToAssignment(${msg.alertId}, false)">Reject</button>
     </td>
   `;
-  document.getElementById("rows").appendChild(row);
+
+  
+  rows.appendChild(row);
 }
 
 
