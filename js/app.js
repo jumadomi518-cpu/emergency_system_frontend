@@ -339,8 +339,8 @@ async function handleWSMessage(event){
     if (!responderMarkers[responderId]) {
       responderMarkers[responderId] = L.marker(newLatLng, {
         icon: L.icon({
-          iconUrl: "responder.png",
-          iconSize: [40,40]
+          iconUrl: "../assets/emergency.png",
+          iconSize: [32,32]
         })
       }).addTo(map);
     } else {
