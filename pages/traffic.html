@@ -157,7 +157,7 @@ const alertId = urlParams.get('alertId');
     if (Number(input.value) < 1 || Number(input.value) > 15) {
     alert("Enter a value between 1 and 15"); return;
     }
-    ws.send(JSON.stringify({ type: "WAITING", waiting: input.value, alertId: alertId }))
+    ws.send(JSON.stringify({ type: "WAITING_TIME", time: input.value, alertId: alertId }))
   }
 
 
