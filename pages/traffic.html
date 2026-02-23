@@ -158,7 +158,7 @@ const alertId = urlParams.get('alertId');
     alert("Enter a value between 1 and 15"); return;
     }
     ws.send(JSON.stringify({ type: "WAITING_TIME", time: input.value, alertId: alertId }));
-    alert("Send successful");
+    alert("Send successful " + alertId + " " + input.value);
    input.value = "";
   }
 
