@@ -200,6 +200,9 @@ function connectWS() {
       case "ALERT_RESOLVED":
         removeAlert(msg.alertId);
         break;
+      case "WAITING_TIME":
+        alert("Waiting time received " + msg.time);
+        break;
     }
   };
 }
