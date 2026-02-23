@@ -128,6 +128,25 @@ const alertId = urlParams.get('alertId');
 
   ws.onclose = () => setTimeout(connectWS, 3000);
 
+  navigator.geolocation.watchPosition(
+    pos => {
+
+      const { latitude, longitude } = pos.coords;
+      const newLatLng = [latitude, longitude];
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: "LOCATION_UPDATE",
+          latitude,
+          longitude
+        }));
+      }
+
+    },
+    err => alert("Location error: " + err.message),
+    { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+  );
+
   
   btn.onclick = () => {
     if (input.value === "") {
