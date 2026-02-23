@@ -91,8 +91,8 @@
   
   if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/swt.js")
-    .then(() => console.log("SW registered"))
-    .catch(err => console.log("SW registration failed: " + err));
+    .then(() => alert("SW registered"))
+    .catch(err => alert("SW registration failed: " + err));
 }
   
 
