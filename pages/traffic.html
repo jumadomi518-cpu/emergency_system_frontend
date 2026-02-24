@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title></title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
     * {
       margin: 0;
@@ -14,7 +15,7 @@
     }
     
     .map {
-      margin: 0.5em;
+      margin: 0.2em;
       height: 40vh;
       border: 2px solid green;
     }
@@ -57,6 +58,10 @@
       display: flex;
       justify-content: space-between;
       padding: 0.5em;
+      border: 2px solid black;
+    }
+    h1 {
+      margin-top: 1em;
     }
     
     img {
@@ -81,7 +86,7 @@
   </header>
   <main>
     <div class="view"><p class="large">large</p></div>
-    <div id="etaDisplay">dd</div>
+    <div id="etaDisplay"></div>
        <div id="map" class="map">
       
     </div>
@@ -93,6 +98,7 @@
       </div>
     </div>
   </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
   
   if ("serviceWorker" in navigator) {
@@ -101,16 +107,14 @@
     .catch(err => console.log("SW registration failed: " + err));
 }
   
-  let isAuthenticated = false;
-
+  // GLOBAL VARIABLES
+let isAuthenticated = false;
 let emergencyMarker = null;
 let victimMarker = null;
-
-let responderMarkers = {};                 // responderId -> marker
-let routeCoordinates = {};                 // alertId -> full route array
-let routeRemainingPolyline = {};           // alertId -> polyline
-let routeTraveledPolyline = {};            // alertId -> polyline
-let arrivalTriggered = {};                 // alertId -> boolean
+let responderMarkers = {};
+let routeCoordinates = {};
+let routeRemainingPolyline = {};
+let routeTraveledPolyline = {};
 
 let watchId = null;
 let firstUpdate = true;
@@ -118,79 +122,244 @@ let mapFollowResponder = true;
 
 const etaDisplay = document.getElementById("etaDisplay");
 
-  
-  
-  
-  
+const map = L.map("map").setView([0,0], 13);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "&copy; OpenStreetMap contributors"
+}).addTo(map);
 
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
-
 const alertId = urlParams.get('alertId');
-  
-  const ma = document.getElementById("map");
-    const view = document.querySelector(".large");
-    const btn = document.querySelector("button");
-    const input = document.querySelector("input");
-    
-    let check = true;
-    view.onclick = () => {
-      ma.classList.toggle("height");
-      view.innerText = check ? "small" : "large";
-      check = !check;
+
+if (!alertId) {
+  alert("No alertId provided in URL");
+}
+
+const ma = document.getElementById("map");
+const view = document.querySelector(".large");
+const btn = document.querySelector("button");
+const input = document.querySelector("input");
+
+let check = true;
+view.onclick = () => {
+  ma.classList.toggle("height");
+  view.innerText = check ? "small" : "large";
+  check = !check;
+};
+
+const WS_URL = "wss://campus-emergency-server.onrender.com";
+const REST_URL = "https://campus-emergency-server.onrender.com/api";
+
+async function selectedRoute(alertId) {
+  try {
+    const response = await fetch(`${REST_URL}/route_path/${alertId}`);
+    const data = await response.json();
+
+    if (!data.data || !data.data[0]) {
+      console.error("No route data returned from server");
+      return;
     }
-    
-    const WS_URL = "wss://campus-emergency-server.onrender.com";
-    const REST_URL = "https://campus-emergency-server.onrender.com/api";
-    
-    async function selectedRoute(alertId) {
-      try {
-    const response = await fetch(`${REST_URL}/${alertId}`)
-    const data = response.json();
-    alert(data.data);
-      } catch (error) {
-        alert("An error occurred while fetching route coordinates")
-      }
+
+    const coordsFromResponder = data.data[0].route_path;
+    const victimLat = data.data[0].latitude;
+    const victimLng = data.data[0].longitude;
+
+    routeCoordinates[alertId] = coordsFromResponder;
+
+    drawFullRoute(alertId);
+
+    const victimLatLng = [victimLat, victimLng];
+
+    if (!victimMarker) {
+      victimMarker = L.circleMarker([victimLat, victimLng], {
+        radius: 10,
+        color: 'red',
+        fillColor: 'red',
+        fillOpacity: 0.8
+      }).addTo(map).bindPopup("Emergency Location");
+    } else {
+      victimMarker.setLatLng(victimLatLng);
     }
-    
-    
-    selectedRoute(305)
-    
-    function connectWS() {
-      
+
+  } catch (error) {
+    console.log("An error occurred while fetching route coordinates", error);
+  }
+}
+
+function drawFullRoute(alertId){
+  const coords = routeCoordinates[alertId];
+  if (!coords || coords.length === 0) return;
+
+  if (routeRemainingPolyline[alertId])
+    map.removeLayer(routeRemainingPolyline[alertId]);
+
+  if (routeTraveledPolyline[alertId])
+    map.removeLayer(routeTraveledPolyline[alertId]);
+
+  routeRemainingPolyline[alertId] =
+    L.polyline(coords, { color:"blue", weight:5 }).addTo(map);
+
+  routeTraveledPolyline[alertId] =
+    L.polyline([], { color:"green", weight:5 }).addTo(map);
+
+  map.fitBounds(routeRemainingPolyline[alertId].getBounds());
+}
+
+function updateRouteProgress(alertId, currentLatLng){
+  const route = routeCoordinates[alertId];
+  if (!route || route.length === 0) return;
+
+  const nearestIdx = route.reduce((closestIdx, point, idx) => {
+    const dist = map.distance(point, currentLatLng);
+    return dist < map.distance(route[closestIdx], currentLatLng) ? idx : closestIdx;
+  }, 0);
+
+  const remaining = route.slice(nearestIdx);
+  const traveled = route.slice(0, nearestIdx + 1);
+
+  if (routeRemainingPolyline[alertId])
+    routeRemainingPolyline[alertId].setLatLngs(remaining);
+
+  if (routeTraveledPolyline[alertId])
+    routeTraveledPolyline[alertId].setLatLngs(traveled);
+
+  const distanceLeft = remaining.reduce((sum, point, idx) => {
+    if (idx === 0) return 0;
+    return sum + map.distance(remaining[idx - 1], point);
+  }, 0);
+
+  const avgSpeedKmh = 40;
+  const speedMps = (avgSpeedKmh * 1000) / 3600;
+  const etaSeconds = Math.round(distanceLeft / speedMps);
+
+  etaDisplay.innerText =
+    `ETA: ${Math.floor(etaSeconds/60)} min ${etaSeconds%60} sec
+     | Distance left: ${(distanceLeft/1000).toFixed(2)} km`;
+}
+
+function smoothMoveMarker(marker, newLatLng, duration = 800) {
+  const startLatLng = marker.getLatLng();
+  const endLatLng = L.latLng(newLatLng);
+  const startTime = performance.now();
+
+  function animate(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    const ease = progress < 0.5
+      ? 2 * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+    const lat = startLatLng.lat + (endLatLng.lat - startLatLng.lat) * ease;
+    const lng = startLatLng.lng + (endLatLng.lng - startLatLng.lng) * ease;
+
+    marker.setLatLng([lat, lng]);
+
+    if (progress < 1) requestAnimationFrame(animate);
+  }
+
+  requestAnimationFrame(animate);
+}
+
+let ws;
+function connectWS() {
   ws = new WebSocket(WS_URL);
 
   ws.onopen = () => {
     const token = localStorage.getItem("token");
-    console.log("connected")
+    console.log("Connected to WS");
     if (token) ws.send(JSON.stringify({ token }));
   };
 
   ws.onclose = () => setTimeout(connectWS, 3000);
 
-  
-  btn.onclick = () => {
-    if (input.value === "") {
-      alert("A value required");
-      return;
-    }
-
-    if (Number(input.value) < 1 || Number(input.value) > 15) {
-    alert("Enter a value between 1 and 15"); return;
-    }
-    ws.send(JSON.stringify({ type: "WAITING", waiting: input.value, alertId: alertId }))
+  if (!btn.onclickSet) {
+    btn.onclick = () => {
+      if (input.value === "") { alert("A value required"); return; }
+      if (Number(input.value) < 1 || Number(input.value) > 15) {
+        alert("Enter a value between 1 and 15"); return;
+      }
+      if (ws.readyState === WebSocket.OPEN)
+        ws.send(JSON.stringify({ type: "WAITING", waiting: input.value, alertId }));
+    };
+    btn.onclickSet = true;
   }
-
-
 
   ws.onmessage = (e) => {
     const msg = JSON.parse(e.data);
-    
-  
-       }
+
+    if (msg.type === "RESPONDER_LOCATION_UPDATE") {
+      console.log("New Responder Location Received");
+      const { responderId, alertId, latitude, longitude } = msg;
+      const newLatLng = [latitude, longitude];
+
+      if (!responderMarkers[responderId]) {
+        responderMarkers[responderId] = L.marker(newLatLng, {
+          icon: L.icon({
+            iconUrl: "../assets/emergency.png",
+            iconSize: [34,34],
+            iconAnchor: [17,34]
+          })
+        })
+        .addTo(map)
+        .bindPopup("Emergency Responder");
+      } else {
+        smoothMoveMarker(responderMarkers[responderId], newLatLng, 800);
+      }
+
+      if (mapFollowResponder) {
+        map.flyTo(newLatLng, map.getZoom(), {
+          duration: 0.8,
+          easeLinearity: 0.25
+        });
+      }
+
+      if (routeCoordinates[alertId])
+        updateRouteProgress(alertId, newLatLng);
     }
-    connectWS();
-    
+  };
+}
+
+let trafficMarker = null;
+
+function startTrafficLocation() {
+  if (!navigator.geolocation) {
+    console.warn("Geolocation not supported in this browser");
+    return;
+  }
+
+  watchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      const { latitude, longitude } = pos.coords;
+      const latLng = [latitude, longitude];
+
+      if (!trafficMarker) {
+        trafficMarker = L.marker(latLng)
+        .addTo(map)
+        .bindPopup(" Your Location")
+        .openPopup();
+      } else {
+        smoothMoveMarker(trafficMarker, latLng, 800);
+      }
+    },
+    (err) => {
+      console.error("Error getting traffic location:", err);
+    },
+    { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
+  );
+}
+
+window.addEventListener("beforeunload", () => {
+  if (watchId) navigator.geolocation.clearWatch(watchId);
+});
+
+startTrafficLocation();
+selectedRoute(alertId);
+connectWS();
+  
+
+
   </script>
 </body>
 
