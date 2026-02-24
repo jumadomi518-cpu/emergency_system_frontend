@@ -294,7 +294,7 @@ function connectWS() {
     const msg = JSON.parse(e.data);
 
     if (msg.type === "RESPONDER_LOCATION_UPDATE") {
-      console.log("New Responder Location Received");
+      alert("New Responder Location Received");
       const { responderId, alertId, latitude, longitude } = msg;
       const newLatLng = [latitude, longitude];
 
