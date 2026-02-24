@@ -106,6 +106,9 @@ h4 {
   border: 2px solid #1976d2;
   background: #e3f2fd;
 }
+.rem {
+  padding: 0.5em;
+}
   </style>
 </head>
 <body>
@@ -118,6 +121,8 @@ h4 {
 </thead>
 <tbody id="rows"></tbody>
 </table>
+ <div class="rem">
+</div>
 </div>
 <div id="routeInfo">
 </div>
@@ -175,6 +180,32 @@ function animateMarker(marker, startPos, endPos, duration = 1000) {
   animationFrames[marker._leaflet_id] = requestAnimationFrame(step);
 }
 
+function countDown(time) {
+  const rem = document.querySelector(".rem");
+  const p = document.createElement("p");
+  rem.appendChild(p);
+  let seconds = Number(time) * 60;
+ const t = setInterval(() => {
+    seconds = seconds - 1;
+    p.innerText = `Remaining: ${seconds} sec`;
+    if (seconds === 0) {
+      clearInterval(t);
+      alert("It's Time to save lives");
+    }
+  }, 1000)
+  
+  
+}
+
+
+function handleWaitingTime(time) {
+ const waiting = document.querySelector(".waiting");
+  waiting.innerText = time;
+
+ countDown(time);
+
+  }
+
 // WEBSOCKET
 function connectWS() {
   ws = new WebSocket(WS_URL);
@@ -201,7 +232,7 @@ function connectWS() {
         removeAlert(msg.alertId);
         break;
       case "WAITING_TIME":
-        alert("Waiting time received " + msg.time);
+        handleWaitingTime(msg.time);
         break;
     }
   };
@@ -329,6 +360,7 @@ function showAssignmentUI(msg) {
     <td>${msg.name}</td>
     <td>${msg.phone}</td>
     <td>${msg.message}</td>
+    <td class="waiting"></td>
     <td id="status-${msg.alertId}">
       <button class="accept" onclick="respondToAssignment(${msg.alertId}, true)">Accept</button>
       <button class="reject" onclick="respondToAssignment(${msg.alertId}, false)">Reject</button>
