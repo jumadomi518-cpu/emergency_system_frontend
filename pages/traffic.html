@@ -284,7 +284,9 @@ function connectWS() {
         alert("Enter a value between 1 and 15"); return;
       }
       if (ws.readyState === WebSocket.OPEN)
-        ws.send(JSON.stringify({ type: "WAITING", waiting: input.value, alertId }));
+        ws.send(JSON.stringify({ type: "WAITING", time: input.value, alertId }));
+        alert("Send successful");
+        input.value = "";
     };
     
 
