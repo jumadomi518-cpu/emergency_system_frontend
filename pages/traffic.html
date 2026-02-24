@@ -35,6 +35,7 @@
     input {
       font-size: 1.5rem;
       width: 60%;
+      margin-right: 1em;
     }
     button {
       font-size: 1.4rem;
@@ -65,6 +66,10 @@
     .height {
       height: 100vh;
     }
+    #etaDisplay {
+      font-size: 1.5rem;
+      padding: 0.5em;
+    }
     
   </style>
 </head>
@@ -76,6 +81,7 @@
   </header>
   <main>
     <div class="view"><p class="large">large</p></div>
+    <div id="etaDisplay">dd</div>
        <div id="map" class="map">
       
     </div>
@@ -91,9 +97,30 @@
   
   if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/swt.js")
-    .then(() => alert("SW registered"))
-    .catch(err => alert("SW registration failed: " + err));
+    .then(() => console.log("SW registered"))
+    .catch(err => console.log("SW registration failed: " + err));
 }
+  
+  let isAuthenticated = false;
+
+let emergencyMarker = null;
+let victimMarker = null;
+
+let responderMarkers = {};                 // responderId -> marker
+let routeCoordinates = {};                 // alertId -> full route array
+let routeRemainingPolyline = {};           // alertId -> polyline
+let routeTraveledPolyline = {};            // alertId -> polyline
+let arrivalTriggered = {};                 // alertId -> boolean
+
+let watchId = null;
+let firstUpdate = true;
+let mapFollowResponder = true;
+
+const etaDisplay = document.getElementById("etaDisplay");
+
+  
+  
+  
   
 
 const queryString = window.location.search;
@@ -114,8 +141,20 @@ const alertId = urlParams.get('alertId');
     }
     
     const WS_URL = "wss://campus-emergency-server.onrender.com";
+    const REST_URL = "https://campus-emergency-server.onrender.com/api";
+    
+    async function selectedRoute(alertId) {
+      try {
+    const response = await fetch(`${REST_URL}/${alertId}`)
+    const data = response.json();
+    alert(data.data);
+      } catch (error) {
+        alert("An error occurred while fetching route coordinates")
+      }
+    }
     
     
+    selectedRoute(305)
     
     function connectWS() {
       
@@ -123,29 +162,11 @@ const alertId = urlParams.get('alertId');
 
   ws.onopen = () => {
     const token = localStorage.getItem("token");
+    console.log("connected")
     if (token) ws.send(JSON.stringify({ token }));
   };
 
   ws.onclose = () => setTimeout(connectWS, 3000);
-
-  navigator.geolocation.watchPosition(
-    pos => {
-
-      const { latitude, longitude } = pos.coords;
-      const newLatLng = [latitude, longitude];
-
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: "LOCATION_UPDATE",
-          latitude,
-          longitude
-        }));
-      }
-
-    },
-    err => alert("Location error: " + err.message),
-    { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
-  );
 
   
   btn.onclick = () => {
@@ -157,9 +178,7 @@ const alertId = urlParams.get('alertId');
     if (Number(input.value) < 1 || Number(input.value) > 15) {
     alert("Enter a value between 1 and 15"); return;
     }
-    ws.send(JSON.stringify({ type: "WAITING_TIME", time: input.value, alertId: alertId }));
-    alert("Send successful " + alertId + " " + input.value);
-   input.value = "";
+    ws.send(JSON.stringify({ type: "WAITING", waiting: input.value, alertId: alertId }))
   }
 
 
@@ -171,62 +190,7 @@ const alertId = urlParams.get('alertId');
        }
     }
     connectWS();
-
-const REST_URL = "https://campus-emergency-server.onrender.com/api";
-
-async function subscribePush() {
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    let sub = await reg.pushManager.getSubscription();
-
-    if (!sub) {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(
-          "BLWqWGy69vEeRpqjfjM71X3HH9IfF9mDRhaXsqIdysfGLXE0Ur8HjgtyE0VfDK574WK_dbJ7s6uCenB7PmYRbQE"
-        )
-      });
-
-      console.log("New subscription created");
-    } else {
-      console.log("Existing subscription found");
-    }
-
-    await fetch(`${REST_URL}/subscribe`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: localStorage.getItem("userId"),
-        subscription: sub
-      })
-    });
-
-    alert("Push subscription sent to server");
-
-  } catch (err) {
-    alert("Push subscription failed:", err);
-  }
-}
     
-
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = "=".repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/\-/g, "+")
-    .replace(/_/g, "/");
-
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i)
-    outputArray[i] = rawData.charCodeAt(i);
-
-  return outputArray;
-}
-
-subscribePush();
-
   </script>
 </body>
 
