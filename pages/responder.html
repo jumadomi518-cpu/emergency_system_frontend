@@ -360,11 +360,11 @@ function showAssignmentUI(msg) {
     <td>${msg.name}</td>
     <td>${msg.phone}</td>
     <td>${msg.message}</td>
-    <td class="waiting"></td>
     <td id="status-${msg.alertId}">
       <button class="accept" onclick="respondToAssignment(${msg.alertId}, true)">Accept</button>
       <button class="reject" onclick="respondToAssignment(${msg.alertId}, false)">Reject</button>
     </td>
+       <td class="waiting"></td>
   `;
 
   
