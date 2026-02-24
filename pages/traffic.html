@@ -122,6 +122,7 @@ let routeTraveledPolyline = {};
 let watchId = null;
 let firstUpdate = true;
 let mapFollowResponder = true;
+const userId = localStorage.getItem("userId");
 
 const etaDisplay = document.getElementById("etaDisplay");
 
@@ -156,7 +157,7 @@ const REST_URL = "https://campus-emergency-server.onrender.com/api";
 
 async function selectedRoute(alertId) {
   try {
-    const response = await fetch(`${REST_URL}/route_path/${alertId}`);
+    const response = await fetch(`${REST_URL}/route_path/${alertId}/${userId}`);
     const data = await response.json();
 
     if (!data.data || !data.data[0]) {
@@ -277,6 +278,21 @@ function connectWS() {
 
   ws.onclose = () => setTimeout(connectWS, 3000);
 
+navigator.geolocation.watchPosition(
+    pos => {
+      const { latitude, longitude } = pos.coords;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: "LOCATION_UPDATE",
+          latitude,
+          longitude
+        }));
+      }
+
+    },
+    err => alert("Location error: " + err.message),
+    { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 })
+  
   
     btn.onclick = () => {
       if (input.value === "") { alert("A value required"); return; }
