@@ -75,6 +75,9 @@
       font-size: 1.5rem;
       padding: 0.5em;
     }
+   button:active {
+   background-color: black;
+    }
     
   </style>
 </head>
@@ -274,7 +277,7 @@ function connectWS() {
 
   ws.onclose = () => setTimeout(connectWS, 3000);
 
-  if (!btn.onclickSet) {
+  
     btn.onclick = () => {
       if (input.value === "") { alert("A value required"); return; }
       if (Number(input.value) < 1 || Number(input.value) > 15) {
@@ -283,8 +286,7 @@ function connectWS() {
       if (ws.readyState === WebSocket.OPEN)
         ws.send(JSON.stringify({ type: "WAITING", waiting: input.value, alertId }));
     };
-    btn.onclickSet = true;
-  }
+    
 
   ws.onmessage = (e) => {
     const msg = JSON.parse(e.data);
