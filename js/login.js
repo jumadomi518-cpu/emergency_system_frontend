@@ -64,7 +64,6 @@ const btn = document.querySelector("button");
       saveTokenForSW(data.token);
       localStorage.setItem("role", data.role);
       localStorage.setItem("userId", data.userId);
-      subscribePush();
       if (data.role === "user") {
       window.location.replace("./pages/user.html");
         } else if (data.role === "traffic") {
