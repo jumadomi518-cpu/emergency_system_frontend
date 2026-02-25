@@ -119,10 +119,13 @@ const btn = document.querySelector("button");
       localStorage.setItem("userId", data.userId);
       if (data.role === "user") {
       window.location.replace("./pages/user.html");
+      subscribePush()
         } else if (data.role === "traffic") {
          window.location.replace("./pages/traffic.html");
+         subscribePush()
          } else {
         window.location.replace("./pages/responder.html");
+       subscribePush()
       }
 
     } else {                                 error.innerText = data.message;
