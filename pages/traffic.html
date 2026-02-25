@@ -69,7 +69,7 @@
     }
     
     .height {
-      height: 100vh;
+      height: 80vh;
     }
     #etaDisplay {
       font-size: 1.5rem;
@@ -328,11 +328,8 @@ navigator.geolocation.watchPosition(
       }
 
       if (mapFollowResponder) {
-        map.flyTo(newLatLng, map.getZoom(), {
-          duration: 0.8,
-          easeLinearity: 0.25
-        });
-      }
+  map.setView(newLatLng, map.getZoom(), { animate: false });
+}
 
       if (routeCoordinates[alertId])
         updateRouteProgress(alertId, newLatLng);
