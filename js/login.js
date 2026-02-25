@@ -117,15 +117,13 @@ const btn = document.querySelector("button");
       saveTokenForSW(data.token);
       localStorage.setItem("role", data.role);
       localStorage.setItem("userId", data.userId);
+      subscribePush();
       if (data.role === "user") {
       window.location.replace("./pages/user.html");
-      subscribePush()
         } else if (data.role === "traffic") {
          window.location.replace("./pages/traffic.html");
-         subscribePush()
          } else {
         window.location.replace("./pages/responder.html");
-       subscribePush()
       }
 
     } else {                                 error.innerText = data.message;
