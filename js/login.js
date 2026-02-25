@@ -2,8 +2,8 @@
 // SERVICE WORKER
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js")
-    .then(() => alert("SW registered"))
-    .catch(err => alert("SW registration failed: " + err));
+    .then(() => console.log("SW registered"))
+    .catch(err => console.log("SW registration failed: " + err));
 }
 
 function saveTokenForSW(token) {
@@ -113,7 +113,6 @@ const btn = document.querySelector("button");
     const data = await res.json();
 
     if (data.success) {
-      subscribePush();
       localStorage.setItem("token", data.token);
       saveTokenForSW(data.token);
       localStorage.setItem("role", data.role);
