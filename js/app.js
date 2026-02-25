@@ -39,7 +39,7 @@ fire.classList.remove("color");
 }
 
 robbery.onclick = () => {
-emergencyType = toggleAccident ? "ROBBERY" : null;
+emergencyType = toggleRobbery ? "ROBBERY" : null;
 toggleRobbery = !toggleRobbery;
 robbery.classList.toggle("color");
 accident.classList.remove("color");
@@ -92,16 +92,6 @@ const map = L.map("map").setView([0,0], 13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "&copy; OpenStreetMap contributors"
 }).addTo(map);
-
-
-
-// SERVICE WORKER
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js")
-    .then(() => log("SW registered"))
-    .catch(err => log("SW registration failed: " + err));
-}
-
 
 
 // NOTIFICATION PERMISSION
@@ -182,17 +172,6 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
-// SERVICE WORKER MESSAGE
-navigator.serviceWorker.addEventListener("message", event => {
-  const { type, alertId, vote } = event.data;
-
-  if (type === "VALIDATE_RESPONSE") {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type, alertId, vote }));
-      log(`Vote sent from SW: alertId=${alertId}, vote=${vote}`);
-    }
-  }
-});
 
 // EMERGENCY TRIGGER
 function trigger(){
