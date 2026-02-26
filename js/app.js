@@ -16,20 +16,9 @@ const body = document.querySelector("body");
 
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
-const alertId = urlParams.get('alertId');
+const alertId = urlParams.get('alertId') || 306;
 
-if (!alertId) {
-  alert("No alertId provided in URL");
-} else {
-  body.innerHTML = `<div class="voteContainer">
-    <p>Dear Citizen, Please confirm that the emergency triggered is true by Clicking one of the button below</p>
-    <div class="voteParent">
-      <button class="false" onclick="vote(false)">False</button>
-      <button class="true" onclick="vote(true)">True</button>
-    </div>
-  </div>`
-  ;
-}
+
 
 
 // UI TOGGLE
@@ -191,7 +180,18 @@ function connectWebSocket(){
 
 connectWebSocket();
 
-
+if (!alertId) {
+  alert("No alertId provided in URL");
+} else {
+  body.innerHTML = `<div class="voteContainer">
+    <p>Dear Citizen, Please confirm that the emergency triggered is true by Clicking one of the button below</p>
+    <div class="voteParent">
+      <button class="false" onclick="vote(false)">False</button>
+      <button class="true" onclick="vote(true)">True</button>
+    </div>
+  </div>`
+  ;
+}
 
 function vote(vot) {
    const vote = String(vot).toUpperCase();
@@ -208,7 +208,7 @@ function vote(vot) {
  body.innerHTML = "";
 }
 
-
+window.vote = vote;
 
 // EMERGENCY TRIGGER
 function trigger(){
