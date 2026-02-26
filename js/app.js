@@ -21,6 +21,7 @@ const alertId = urlParams.get('alertId');
 if (!alertId) {
   alert("No alertId provided in URL");
 } else {
+  body.innerHTML = "";
   const divAncestor = document.createElement("div");
   div.setAttribute("class", "voteContainer");
   const divParent = document.createElement("div");
