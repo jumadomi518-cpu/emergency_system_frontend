@@ -157,6 +157,38 @@ font-size: 1.5rem;
   animation: pulse 1.5s infinite;
   border-radius: 50%;
 }
+.voteContainer {
+  font-size: 1.2rem !important;
+  padding: 0.5em;
+  display: flex;
+  border: 2px solid green;
+  flex-direction: column;
+  margin: 4em 2em 2em 2em;
+  border-radius: 1em;
+}
+
+.voteParent {
+  margin-top: 0.5em;
+  display: flex;
+  justify-content: space-between;
+  padding: 0.7em;
+}
+.true, .false {
+  padding: 0.5em;
+  border-radius: 0.4em;
+}
+
+.true {
+  background-color: green;
+  color: white;
+}
+.false {
+  background-color: red;
+  color: white;
+}
+.true:active, .false:active {
+  background-color: black;
+}
   
 @keyframes pulse {
   0% { transform: scale(1); opacity: 1; }
@@ -166,6 +198,8 @@ font-size: 1.5rem;
   </style>
 </head>
 <body>
+
+  
   <section class="content">
   <header>
     <img src="../assets/1771060588592.png" id="logo" />
