@@ -24,8 +24,8 @@ if (!alertId) {
   body.innerHTML = `<div class="voteContainer">
     <p>Dear Citizen, Please confirm that the emergency triggered is true by Clicking one of the button below</p>
     <div class="voteParent">
-      <button class="false">False</button>
-      <button class="true">True</button>
+      <button class="false" onclick="vote(FALSE)">False</button>
+      <button class="true" onclick="vote(TRUE)">True</button>
     </div>
   </div>`
   ;
@@ -192,6 +192,20 @@ function connectWebSocket(){
 connectWebSocket();
 
 
+
+function vote(vot) {
+   const vote = vot;
+     ws.send(JSON.stringify({
+      type: "VALIDATE_RESPONSE",
+      alertId: alertId,
+      vote
+    }));
+    alert("Thanks for your response, an action will be taken immediately.")
+ body.innerHTML = "";
+}
+
+
+
 // EMERGENCY TRIGGER
 function trigger(){
 
@@ -280,15 +294,10 @@ function stop(){
 async function handleWSMessage(event){
 
   const msg = JSON.parse(event.data);
+  
 
-  if (msg.type === "AUTH_SUCCESS") {
-    isAuthenticated = true;
-    subscribePush();
-    log("Authenticated");
-    start();
-  }
 
-  if (msg.type === "VALIDATE_ALERT") {
+  /*if (msg.type === "VALIDATE_ALERT") {
     const vote = confirm(msg.message + "\nOK = TRUE, Cancel = FALSE");
     log("validate alert received");
     ws.send(JSON.stringify({
@@ -296,7 +305,7 @@ async function handleWSMessage(event){
       alertId: msg.alertId,
       vote
     }));
-  }
+  }*/
 
   if (msg.type === "EMERGENCY_ASSIGNMENT") {
     const { latitude, longitude, message } = msg;
