@@ -305,7 +305,7 @@ async function handleWSMessage(event){
     start();
   }
 
-  /*if (msg.type === "VALIDATE_ALERT") {
+  if (msg.type === "VALIDATE_ALERT") {
     const vote = confirm(msg.message + "\nOK = TRUE, Cancel = FALSE");
     log("validate alert received");
     ws.send(JSON.stringify({
@@ -313,7 +313,7 @@ async function handleWSMessage(event){
       alertId: msg.alertId,
       vote
     }));
-  }*/
+  }
 
   if (msg.type === "EMERGENCY_ASSIGNMENT") {
     const { latitude, longitude, message } = msg;
