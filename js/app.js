@@ -21,24 +21,14 @@ const alertId = urlParams.get('alertId');
 if (!alertId) {
   alert("No alertId provided in URL");
 } else {
-  body.innerHTML = "";
-  const divAncestor = document.createElement("div");
-  div.setAttribute("class", "voteContainer");
-  const divParent = document.createElement("div");
-  divParent.setAttribute("class", "voteParent");
-  const text = document.createElement("p");
-  p.innerText = "Dear Citizen, Please Confirm that an emergency triggered a few meters from you is true by clicking one of the buttons below.";
-  const falseBtn = document.createElement("button");
-  falseBtn.innerText = "false";
-  const trueBtn = document.createElement("button");
-  divParent.appendChild(falseBtn);
-  divParent.appendChild(trueBtn);
-  trueBtn.innerText = "true";
-  divAncestor.appendChild(text);
-  divAncestor.appendChild(divParent);
-  
-  body.appendChild(divAncestor);
-  
+  body.innerHTML = `<div class="voteContainer">
+    <p>Dear Citizen, Please confirm that the emergency triggered is true by Clicking one of the button below</p>
+    <div class="voteParent">
+      <button class="false">False</button>
+      <button class="true">True</button>
+    </div>
+  </div>`
+  ;
 }
 
 
