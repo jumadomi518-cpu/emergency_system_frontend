@@ -24,8 +24,8 @@ if (!alertId) {
   body.innerHTML = `<div class="voteContainer">
     <p>Dear Citizen, Please confirm that the emergency triggered is true by Clicking one of the button below</p>
     <div class="voteParent">
-      <button class="false" onclick="vote(FALSE)">False</button>
-      <button class="true" onclick="vote(TRUE)">True</button>
+      <button class="false" onclick="vote(false)">False</button>
+      <button class="true" onclick="vote(true)">True</button>
     </div>
   </div>`
   ;
@@ -194,7 +194,7 @@ connectWebSocket();
 
 
 function vote(vot) {
-   const vote = vot;
+   const vote = vot.toUpperCase();
      ws.send(JSON.stringify({
       type: "VALIDATE_RESPONSE",
       alertId: alertId,
