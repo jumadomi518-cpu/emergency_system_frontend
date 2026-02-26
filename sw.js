@@ -7,8 +7,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: '../assets/emergency.png',
-    badge: '../assets/emergency.png',
+    icon: 'https://emergency-system-frontend.vercel.app/assets/emergency.png',
+badge: 'https://emergency-system-frontend.vercel.app/assets/emergency.png',
     data: {
       url: data.url, 
     },
