@@ -12,6 +12,33 @@ function log(msg){
   panel.scrollTop = panel.scrollHeight;
 }
 
+const body = document.querySelector("body");
+
+const queryString = window.location.search;
+const urlParams = new URLSearchParams(queryString);
+const alertId = urlParams.get('alertId');
+
+if (!alertId) {
+  alert("No alertId provided in URL");
+} else {
+  const divAncestor = document.createElement("div");
+  div.setAttribute("class", "voteContainer");
+  const divParent = document.createElement("div");
+  divParent.setAttribute("class", "voteParent");
+  const text = document.createElement("p");
+  p.innerText = "Dear Citizen, Please Confirm that an emergency triggered a few meters from you is true by clicking one of the buttons below.";
+  const falseBtn = document.createElement("button");
+  falseBtn.innerText = "false";
+  const trueBtn = document.createElement("button");
+  divParent.appendChild(falseBtn);
+  divParent.appendChild(trueBtn);
+  trueBtn.innerText = "true";
+  divAncestor.appendChild(text);
+  divAncestor.appendChild(divParent);
+  
+  body.appendChild(divAncestor);
+  
+}
 
 
 // UI TOGGLE
