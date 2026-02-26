@@ -194,12 +194,16 @@ connectWebSocket();
 
 
 function vote(vot) {
-   const vote = vot.toUpperCase();
+   const vote = String(vot).toUpperCase();
+   if (ws.readyState === WebSocket.OPEN) {
      ws.send(JSON.stringify({
       type: "VALIDATE_RESPONSE",
       alertId: alertId,
       vote
     }));
+   } else {
+     alert("websocket not connected");
+   }
     alert("Thanks for your response, an action will be taken immediately.")
  body.innerHTML = "";
 }
@@ -295,7 +299,7 @@ async function handleWSMessage(event){
 
   const msg = JSON.parse(event.data);
   
-  if (msg.type = "AUTH_SUCCESS") {
+  if (msg.type === "AUTH_SUCCESS") {
     isAuthenticated = true;
     subscribePush();
     start();
