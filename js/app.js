@@ -16,7 +16,7 @@ const body = document.querySelector("body");
 
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
-const alertId = urlParams.get('alertId') || 306;
+const alertId = urlParams.get('alertId');
 
 
 
@@ -181,7 +181,7 @@ function connectWebSocket(){
 connectWebSocket();
 
 if (!alertId) {
-  alert("No alertId provided in URL");
+  console.log("No alertId provided in URL");
 } else {
   body.innerHTML = `<div class="voteContainer">
     <p>Dear Citizen, Please confirm that the emergency triggered is true by Clicking one of the button below</p>
