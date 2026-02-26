@@ -295,7 +295,11 @@ async function handleWSMessage(event){
 
   const msg = JSON.parse(event.data);
   
-
+  if (msg.type = "AUTH_SUCCESS") {
+    isAuthenticated = true;
+    subscribePush();
+    start();
+  }
 
   /*if (msg.type === "VALIDATE_ALERT") {
     const vote = confirm(msg.message + "\nOK = TRUE, Cancel = FALSE");
