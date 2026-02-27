@@ -204,7 +204,7 @@ function vote(vot) {
    } else {
      alert("websocket not connected");
    }
-    window.href.replace("../pages/success.html");
+    window.location.replace("../pages/success.html");
 }
 
 window.vote = vote;
