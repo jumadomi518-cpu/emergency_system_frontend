@@ -204,8 +204,7 @@ function vote(vot) {
    } else {
      alert("websocket not connected");
    }
-    alert("Thanks for your response, an action will be taken immediately.")
- body.innerHTML = "";
+    window.href.replace("../pages/success.html");
 }
 
 window.vote = vote;
