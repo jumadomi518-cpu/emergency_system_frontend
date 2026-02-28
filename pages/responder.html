@@ -460,11 +460,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const queryString = window.location.search;
   const urlParams = new URLSearchParams(queryString);
   const alertIdParam = urlParams.get('alertId');
-  const alertId = alertIdParam ? Number(alertIdParam) : 299;
+  const alertId = alertIdParam ? Number(alertIdParam) : null;
 
   log("Using alertId:");
   log(alertId);
 
+if (alertId) {
   async function fetchAlert() {
     try {
       const response = await fetch(`${REST_URL}/alert_info/${alertId}`);
@@ -486,7 +487,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
   fetchAlert();
-});
+}});
 
 
 
