@@ -25,15 +25,25 @@
 .show {
   display: flex;
 }
-  header {
-    display: flex;
-    justify-content: space-between;
-  }
-  h1 {
-padding: 1.1em;
-font-size: 1.5rem;
 
-  }
+  header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      padding: 0.2em 0.5em 0.5em 0.5em;
+      margin: 0.5em;
+      height: auto;
+      box-shadow: 0 0 4px 0 black;
+    }
+    
+    .heading {
+      display: grid;
+      place-items: center;
+      height: 10vh;
+    }
+    h1 {
+      padding: 0.5em;
+    }
   
   .content section {
     display: flex;
@@ -202,8 +212,10 @@ font-size: 1.5rem;
   
   <section class="content">
   <header>
-    <img src="../assets/1771060588592.png" id="logo" />
+    <img src="../assets/1771060588592.png" id="logo" alt="logo" />
+<div class="heading">
 <h1>Emergency Response System.</h1>
+</div>
   </header>
 <section>
   <img src="../assets/images.png" id="ambulance">
