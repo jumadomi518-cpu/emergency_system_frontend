@@ -176,9 +176,7 @@ const animationFrames = {};
 let currentWatchId = null;
 const userId = localStorage.getItem("userId");
 
-const queryString = window.location.search;
-const urlParams = new URLSearchParams(queryString);
-const alertId = urlParams.get('alertId') || 306;
+
 
 
 async function subscribePush() {
@@ -316,30 +314,7 @@ function connectWS() {
   };
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-if (alertId) {
-  async function fetchAlert() {
-    try {
-    const response = await fetch(`${REST_URL}/alert_info/${alertId}`);
-    const data = await response.json();
-    log(data)
-    const formatted = {
-  alertId: data.id,
-  latitude: data.latitude,
-  longitude: data.longitude,
-  name: data.name,
-  phone: data.phone,
-  message: data.message || data.emergency_type
-};
-    showAssignmentUI(formatted);
-    } catch (error) {
-      log(error.message);
-    }
-  }
-  fetchAlert();
-}
 
-})
 
 
 // FETCH ROUTES 
@@ -479,6 +454,42 @@ function showAssignmentUI(msg) {
   
   rows.appendChild(row);
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  const queryString = window.location.search;
+  const urlParams = new URLSearchParams(queryString);
+  const alertIdParam = urlParams.get('alertId');
+  const alertId = alertIdParam ? Number(alertIdParam) : 306;
+
+  console.log("Using alertId:", alertId);
+
+  async function fetchAlert() {
+    try {
+      const response = await fetch(`https://campus-emergency-server.onrender.com/api/alert_info/${alertId}`);
+      const data = await response.json();
+      log("Fetched alert:", data);
+
+      const formatted = {
+        alertId: data.id,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        name: data.name,
+        phone: data.phone,
+        message: data.message || data.emergency_type
+      };
+
+log("Rows element:", document.getElementById("rows"));
+      showAssignmentUI(formatted);
+
+    } catch (err) {
+      log("Fetch error:", err.message);
+    }
+  }
+  fetchAlert();
+});
+
+
 
 
 function respondToAssignment(alertId, accept) {
