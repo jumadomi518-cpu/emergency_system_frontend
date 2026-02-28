@@ -15,6 +15,35 @@
   }
   
 
+header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      padding: 0.2em 0.5em 0.5em 0.5em;
+      margin: 0.5em;
+      height: auto;
+      box-shadow: 0 0 4px 0 black;
+    }
+    
+  
+    
+    .heading {
+      display: grid;
+      place-items: center;
+      height: 10vh;
+    }
+    h1 {
+      margin-top: 0em;
+    }
+    
+    img {
+      height: 10vh;
+
+      
+    }
+
+
+
   
 .scale {
   height: 0;
@@ -26,24 +55,6 @@
   display: flex;
 }
 
-  header {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.8rem;
-      padding: 0.2em 0.5em 0.5em 0.5em;
-      margin: 0.5em;
-      height: auto;
-      box-shadow: 0 0 4px 0 black;
-    }
-    
-    .heading {
-      display: grid;
-      place-items: center;
-      height: 10vh;
-    }
-    h1 {
-      padding: 0.5em;
-    }
   
   .content section {
     display: flex;
@@ -51,9 +62,15 @@
     padding: 1.5em;
   }
   
-  .buttons {
+  .buttonsParent {
     width: 50%;
+  }
+  .buttons {
+    width: 100%;
     padding: 1.5em;
+    display: grid;
+    place-items: center;
+    
   }
   
   .buttons button {
@@ -68,6 +85,7 @@
     overflow: scroll;
     background-color: cadetblue;
     color: white;
+
   }
   
 
@@ -76,14 +94,19 @@
     height: 10vh;
   }
   
-  
-  .ambulance {
+  .ambuAncestor {
     display: flex;
+    justify-content: space-evenly;
+  }
+  .ambulance {
+    display: grid;
+    place-items: center;
+    width: 50%;
   }
   
   #ambulance {
     object-fit: contain;
-    height: 15vh;
+    height: 20vh;
   }
 
   
@@ -212,17 +235,21 @@
   
   <section class="content">
   <header>
-    <img src="../assets/1771060588592.png" id="logo" alt="logo" />
-<div class="heading">
+    <img src="../assets/1771060588592.png" id="logo" />
+    <div class="heading">
 <h1>Emergency Response System.</h1>
-</div>
+    </div>
   </header>
-<section>
-  <img src="../assets/images.png" id="ambulance">
+<section class="ambuAncestor">
+  <div class="ambulance">
+  <img src="../assets/images.jpeg" id="ambulance">
+  </div>
+  <div class="buttonsParent">
   <div class="buttons">
     <button id="robbery">Robbery</button>
     <button id="accident">Accident</button>
     <button id="fire">Fire outbreak</button>
+  </div>
   </div>
 </section>
 
