@@ -4,6 +4,9 @@
       font-family: "Poppins", sans-serif;
       box-sizing: border-box;
     }
+    main {
+      padding: 4em;
+    }
     
     body {
       position: relative;
@@ -25,8 +28,10 @@
       font-size: 1.2rem;
       display: flex;
       flex-direction: column;
-      padding: 4.5em 4.5em 0 4.5em;
+      padding: 4em;
+      background-color: lightgrey;
       color: rgba(0, 0, 0, 0.8);
+      box-shadow: 0 0 4px 0 black;
     }
     
     label {
@@ -49,8 +54,9 @@
     }
     h1 {
       text-align: center;
-      margin-top: 2em;
       color: rgba(50, 0, 0, 0.5);
+      box-shadow: 0 0 4px 0 black;
+      padding: 0.5em;
     }
     p {
       text-align: center;
@@ -59,7 +65,6 @@
     
     .dont {
       font-size: 1rem;
-      text-decoration: underline wavy black;
     }
     a[href="./forms/register.html"] {
       font-size: 1.3rem;
@@ -96,6 +101,19 @@
       justify-content: flex-end;
       font-size: 1rem;
     }
+    
+    footer {
+    text-align: center;
+    font-size: 0.8rem !important;
+    width: 100%;
+    padding-top: 0.5em;
+    position: fixed;
+    bottom: 0;
+  }
+  footer p {
+    font-size: inherit;
+  }
+    
         @media (orientation: landscape) {
       form {
         width: 50%;
