@@ -462,7 +462,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const alertIdParam = urlParams.get('alertId');
   const alertId = alertIdParam ? Number(alertIdParam) : 306;
 
-  log("Using alertId:", alertId);
+  log("Using alertId:");
+  log(alertId);
 
   async function fetchAlert() {
     try {
@@ -479,12 +480,9 @@ document.addEventListener("DOMContentLoaded", () => {
         message: data.message || data.emergency_type
       };
 
-log("Rows element:", document.getElementById("rows"));
-      showAssignmentUI(formatted);
-
     } catch (err) {
       log("Fetch error:", err.message);
-      log(err);
+      log(err.message);
     }
   }
   fetchAlert();
