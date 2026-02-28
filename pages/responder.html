@@ -316,11 +316,13 @@ function connectWS() {
   };
 }
 
+document.addEventListener("DOMContentLoaded", () => {
 if (alertId) {
   async function fetchAlert() {
     try {
-    const response = await fetch(`https://campus-emergency-server.onrender.com/api/alert_info/${alertId}`);
+    const response = await fetch(`${REST_URL}/alert_info/${alertId}`);
     const data = await response.json();
+    log(data)
     const formatted = {
   alertId: data.id,
   latitude: data.latitude,
@@ -331,13 +333,13 @@ if (alertId) {
 };
     showAssignmentUI(formatted);
     } catch (error) {
-      console.log(error.message);
+      log(error.message);
     }
   }
   fetchAlert();
 }
 
-
+})
 
 
 // FETCH ROUTES 
