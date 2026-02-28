@@ -193,7 +193,11 @@ if (!alertId) {
   ;
 }
 
-function vote(vot) {
+async function vote(vot) {
+  const falseBtn = document.querySelector(".false");
+  const trueBtn = document.querySelector(".true");
+  falseBtn.setAttribute("disabled", "true");
+  trueBtn.setAttribute("disabled", "true");
    const vote = String(vot).toUpperCase();
    if (ws.readyState === WebSocket.OPEN) {
      ws.send(JSON.stringify({
@@ -201,10 +205,30 @@ function vote(vot) {
       alertId: alertId,
       vote
     }));
-   } else {
-     alert("websocket not connected");
-   }
     window.location.replace("../pages/success.html");
+   } else {
+     try {
+       const res = await fetch(`${REST_URL}/api/validate-alert`, {
+         method: "POST",
+         headers: {
+           'Content-Type': 'application/json',
+           authorization: localStorage.getItem("token")
+         },
+         body: JSON.stringify({
+           alertId: alertId,
+           vote: vote
+         })
+       });
+       
+      if (!res.ok) {
+        throw new Error("Validation failed");
+      }
+       window.location.replace("../pages/success.html");
+     } catch (error) {
+       console.log(error.message)
+     }
+   }
+    
 }
 
 window.vote = vote;
