@@ -469,8 +469,8 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const response = await fetch(`${REST_URL}/alert_info/${alertId}`);
       const data = await response.json();
-      log("Fetched alert:", data);
-
+ 
+      log(data);
       const formatted = {
         alertId: data.id,
         latitude: data.latitude,
@@ -479,9 +479,9 @@ document.addEventListener("DOMContentLoaded", () => {
         phone: data.phone,
         message: data.message || data.emergency_type
       };
-
+     showAssignmentUI(formatted);
     } catch (err) {
-      log("Fetch error:", err.message);
+    
       log(err.message);
     }
   }
