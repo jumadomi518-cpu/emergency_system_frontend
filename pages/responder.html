@@ -537,7 +537,7 @@ function startNavigation(alertId, destLat, destLng) {
           iconSize: [32, 32]
         }
       )
-    }).addTo(map).bindPoup("your current location")
+    }).addTo(map).bindPopup("your current location")
   }
 
   navigator.geolocation.getCurrentPosition(pos => {
