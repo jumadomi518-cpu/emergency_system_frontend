@@ -532,7 +532,7 @@ function startNavigation(alertId, destLat, destLng) {
 
   // Initialize responder marker if it doesn't exist
   if (!responderMarkers[alertId]) {
-    responderMarkers[alertId] = L.RotatedMarker([0, 0], {
+    responderMarkers[alertId] = new L.RotatedMarker([0, 0], {
       icon: L.icon({
         iconUrl: "../assets/emergency.png",
         iconSize: [32, 32]
