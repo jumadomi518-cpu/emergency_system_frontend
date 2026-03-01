@@ -130,6 +130,18 @@ h4 {
 .rem {
   padding: 0.5em;
 }
+
+footer {
+    text-align: center;
+    font-size: 0.8rem !important;
+    width: 100%;
+    padding-top: 0.5em;
+    position: fixed;
+    bottom: 0;
+  }
+  footer p {
+    font-size: inherit;
+  }
   </style>
 </head>
 <body>
@@ -154,7 +166,9 @@ h4 {
 <div id="map"></div>
 
 <div id="debugPanel"></div>
-
+<footer>
+  <p>&copy; 2026 Mbiu. All rights reserved.</p>
+</footer>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
@@ -431,12 +445,12 @@ function showAssignmentUI(msg) {
   activeAssignment = msg;
 
   if (!emergencyMarkers[msg.alertId]) {
-    emergencyMarkers[msg.alertId] = L.circle([msg.latitude, msg.longitude], {
-      radius: 10,
-      color: 'red',
-      fillColor: 'red',
-      fillOpacity: 1
-    }).addTo(map);
+    emergencyMarkers[msg.alertId] = L.marker([msg.latitude, msg.longitude], {
+      icon: L.icon({
+        iconUrl: "../assets/destination.png",
+        iconSize: [32, 32]
+      })
+    }).addTo(map).bindPopup("Emergency location");
   }
   const rows = document.getElementById("rows");
   const row = document.createElement("tr");
@@ -516,12 +530,14 @@ function startNavigation(alertId, destLat, destLng) {
   if (currentWatchId) navigator.geolocation.clearWatch(currentWatchId);
 
   if (!responderMarkers[alertId]) {
-    responderMarkers[alertId] = L.circle([0, 0], {
-      radius: 10,
-      color: 'blue',
-      fillColor: 'blue',
-      fillOpacity: 1
-    }).addTo(map);
+    responderMarkers[alertId] = L.marker([0, 0], {
+      icon: L.icon(
+        {
+          iconUrl: "../assets/emergency.png",
+          iconSize: [32, 32];
+        }
+      )
+    }).addTo(map).bindPoup("your current location")
   }
 
   navigator.geolocation.getCurrentPosition(pos => {
