@@ -425,8 +425,11 @@ if (msg.type === "RESPONDER_LOCATION_UPDATE") {
   }
 
   
-  if (routeCoordinates[alertId]) {
-    updateRouteProgress(alertId, newCoords);
+  if (!routeCoordinates[String(alertId)]) {
+    log("No route coordinates for this id")
+    log(alertId)
+  } else {
+    updateRouteProgress(String(alertId), newCoords);
     log("update route progress called");
     log(alertId);
   }
