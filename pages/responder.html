@@ -189,7 +189,8 @@ const emergencyMarkers = {}, responderMarkers = {}, routeLines = {};
 const animationFrames = {};
 let currentWatchId = null;
 const userId = localStorage.getItem("userId");
-
+let previousLatLng = null;
+let currentAngle = 0;
 
 
 
@@ -387,6 +388,7 @@ function fetchRoutes(alertId, sLat, sLng, dLat, dLng) {
         if (index === bestIndex) card.classList.add("selected");
 
         btn.onclick = () => {
+          selectedRouteCoords = coords;
           document.querySelectorAll(".routeCard").forEach(c => {
             c.classList.remove("selected");
             c.querySelector("button").innerText = "Use";
@@ -525,6 +527,50 @@ function respondToAssignment(alertId, accept) {
 }
 
 
+function calculateBearing(start, end) {
+  const lat1 = start[0] * Math.PI / 180;
+  const lat2 = end[0] * Math.PI / 180;
+  const dLng = (end[1] - start[1]) * Math.PI / 180;
+
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+
+  const brng = Math.atan2(y, x);
+
+  return (brng * 180 / Math.PI + 360) % 360;
+}
+
+
+
+function smoothRotate(marker, startAngle, endAngle, duration = 300) {
+  const startTime = performance.now();
+
+  let delta = endAngle - startAngle;
+
+  // Rotate using shortest direction
+  if (delta > 180) delta -= 360;
+  if (delta < -180) delta += 360;
+
+  function animate(time) {
+    const progress = (time - startTime) / duration;
+
+    if (progress < 1) {
+      const angle = startAngle + delta * progress;
+      marker.setRotationAngle(angle);
+      requestAnimationFrame(animate);
+    } else {
+      marker.setRotationAngle(endAngle);
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+
+
+
 // NAVIGATION 
 function startNavigation(alertId, destLat, destLng) {
   if (currentWatchId) navigator.geolocation.clearWatch(currentWatchId);
@@ -548,7 +594,27 @@ function startNavigation(alertId, destLat, destLng) {
 
   currentWatchId = navigator.geolocation.watchPosition(pos => {
     const newCoords = [pos.coords.latitude, pos.coords.longitude];
+      
     const marker = responderMarkers[alertId];
+    
+    
+    
+    
+    //rotation
+    if (!previousLatLng) {
+      previousLatLng = newCoords;
+      return;
+    }
+    const newBearing = calculateBearing(previousLatLng, newCoords);
+    smoothRotate(marker, currentAngle, newBearing);
+    currentAngle = newBearing;
+    previousLatLng = newCoords;
+    
+    
+  
+  
+  
+  
 
     if (marker._latlng) {
       animateMarker(marker, [marker._latlng.lat, marker._latlng.lng], newCoords, 1000);
