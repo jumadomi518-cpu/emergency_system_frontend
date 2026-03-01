@@ -530,18 +530,17 @@ function respondToAssignment(alertId, accept) {
 function startNavigation(alertId, destLat, destLng) {
   if (currentWatchId) navigator.geolocation.clearWatch(currentWatchId);
 
-  // Initialize responder marker if it doesn't exist
+  
   if (!responderMarkers[alertId]) {
-    responderMarkers[alertId] = new L.RotatedMarker([0, 0], {
+    responderMarkers[alertId] = L.marker([0, 0], {  
       icon: L.icon({
         iconUrl: "../assets/emergency.png",
         iconSize: [32, 32]
       }),
-      rotationAngle: 0,
-      rotationOrigin: 'center'
+      rotationAngle: 0, 
+      rotationOrigin: "center"
     }).addTo(map).bindPopup("your current location");
 
-    // DEBUG: check if rotation method exists
     log(
       "Marker rotatable?",
       "setRotationAngle" in responderMarkers[alertId],
@@ -562,7 +561,6 @@ function startNavigation(alertId, destLat, destLng) {
   currentWatchId = navigator.geolocation.watchPosition(pos => {
     const newCoords = [pos.coords.latitude, pos.coords.longitude];
 
-    // Initialize rotation state per marker if not set
     if (!marker.previousLatLng) {
       marker.previousLatLng = newCoords;
       marker.currentAngle = 0;
@@ -587,7 +585,6 @@ function startNavigation(alertId, destLat, destLng) {
       latitude: newCoords[0],
       longitude: newCoords[1]
     }));
-
   }, console.error, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
 }
 
