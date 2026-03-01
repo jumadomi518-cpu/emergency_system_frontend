@@ -92,7 +92,6 @@ let mapFollowResponder = true;
 const etaDisplay = document.getElementById("etaDisplay");
 
 
-
 // MAP SETUP
 const map = L.map("map").setView([0,0], 13);
 
@@ -192,6 +191,12 @@ if (!alertId) {
   </div>`
   ;
 }
+
+
+
+
+
+
 
 async function vote(vot) {
   const falseBtn = document.querySelector(".false");
@@ -376,29 +381,106 @@ async function handleWSMessage(event){
       `Selected Route: ${distance} km - ${duration} min`;
   }
 
-  if (msg.type === "RESPONDER_LOCATION_UPDATE") {
-     log("NEW LOCATION RECEIVED");
-    const { responderId, alertId, latitude, longitude } = msg;
-    const newLatLng = [latitude, longitude];
+//RESPONDER LOCATION UPDATE
+if (msg.type === "RESPONDER_LOCATION_UPDATE") {
+  log("NEW LOCATION RECEIVED");
 
-    if (!responderMarkers[responderId]) {
-      responderMarkers[responderId] = L.marker(newLatLng, {
-        icon: L.icon({
-          iconUrl: "../assets/emergency.png",
-          iconSize: [32,32]
-        })
-      }).addTo(map);
+  const { responderId, alertId, latitude, longitude } = msg;
+  const newCoords = [latitude, longitude];
+
+  // Initialize marker if it doesn't exist
+  if (!responderMarkers[responderId]) {
+    responderMarkers[responderId] = L.marker(newCoords, {
+      icon: L.icon({
+        iconUrl: "../assets/emergency.png",
+        iconSize: [32, 32]
+      }),
+      rotationAngle: 0,      // plugin required
+      rotationOrigin: 'center'
+    }).addTo(map);
+
+    // Initialize rotation state per marker
+    responderMarkers[responderId].previousLatLng = newCoords;
+    responderMarkers[responderId].currentAngle = 0;
+  } else {
+    const marker = responderMarkers[responderId];
+
+    // Smooth rotation
+    const newBearing = calculateBearing(marker.previousLatLng, newCoords);
+    smoothRotate(marker, marker.currentAngle, newBearing);
+    marker.previousLatLng = newCoords;
+    marker.currentAngle = newBearing;
+
+    // Smooth movement along GPS
+    if (marker._latlng) {
+      animateMarker(marker, [marker._latlng.lat, marker._latlng.lng], newCoords, 1000);
     } else {
-      smoothMoveMarker(responderMarkers[responderId], newLatLng);
+      marker.setLatLng(newCoords);
     }
+  }
 
-    if (mapFollowResponder)
-      map.panTo(newLatLng, { animate: true });
+  
+  if (mapFollowResponder) {
+    map.panTo(newCoords, { animate: true });
+  }
 
-    if (routeCoordinates[alertId])
-      updateRouteProgress(alertId, newLatLng);
+  
+  if (routeCoordinates[alertId]) {
+    updateRouteProgress(alertId, newCoords);
   }
 }
+
+
+
+
+}
+
+// BEARING
+function calculateBearing(start, end) {
+  const lat1 = start[0] * Math.PI / 180;
+  const lat2 = end[0] * Math.PI / 180;
+  const dLng = (end[1] - start[1]) * Math.PI / 180;
+
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+
+  const brng = Math.atan2(y, x);
+
+  return (brng * 180 / Math.PI + 360) % 360;
+}
+
+
+//SMOOTH ROTATION FUNCTION
+function smoothRotate(marker, startAngle, endAngle, duration = 300) {
+  const startTime = performance.now();
+
+  let delta = endAngle - startAngle;
+
+  // Rotate via shortest path
+  if (delta > 180) delta -= 360;
+  if (delta < -180) delta += 360;
+
+  function animate(time) {
+    const progress = (time - startTime) / duration;
+
+    if (progress < 1) {
+      const angle = startAngle + delta * progress;
+      marker.setRotationAngle(angle);
+      requestAnimationFrame(animate);
+    } else {
+      marker.setRotationAngle(endAngle);
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+
+
+
+
 
 // ROUTE DRAWING
 function drawFullRoute(alertId){
