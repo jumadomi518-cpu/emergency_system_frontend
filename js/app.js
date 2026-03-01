@@ -427,6 +427,8 @@ if (msg.type === "RESPONDER_LOCATION_UPDATE") {
   
   if (routeCoordinates[alertId]) {
     updateRouteProgress(alertId, newCoords);
+    log("update route progress called");
+    log(alertId);
   }
 }
 
