@@ -48,18 +48,23 @@
       color: white;
       border-radius: 0.3em;
     }
+    a {
+      display: block;
+    }
     
     .view {
       display: flex;
-      justify-content: flex-end;
-      font-size: 1.3rem;
-      padding: 0.9em 0.5em 0.5em 0.5em;
+      width: 100%;
+      justify-content: space-between;
+      font-size: 1.2rem;
+      padding: 0.5em;
     }
     
     .large {
       border: 2px solid green;
       padding: 0.3em;
       border-radius: 0.4em;
+    
     }
     header {
       display: flex;
@@ -70,6 +75,8 @@
       height: auto;
       box-shadow: 0 0 4px 0 black;
     }
+    
+      
     
     .heading {
       display: grid;
@@ -96,7 +103,17 @@
    button:active {
    background-color: black;
     }
-    
+    footer {
+      position: fixed;
+      bottom: 0;
+    text-align: center;
+    font-size: 0.8rem !important;
+    width: 100%;
+    padding-top: 0.5em;
+  }
+  footer p {
+    font-size: inherit;
+  }
   </style>
 </head>
 
@@ -108,9 +125,8 @@
     </div>
   </header>
   <main>
-    <div class="view"><p class="large">View large map</p>
-      
-    </map></p></div>
+    
+    <div class="view"><a href="https://emergency-system-frontend.vercel.app/">Log out</a><p class="large">View large map</p></div>
     <div id="etaDisplay"></div>
        <div id="map" class="map">
       
@@ -123,6 +139,9 @@
       </div>
     </div>
   </main>
+  <footer>
+  <p>&copy; 2026 Mbiu. All rights reserved.</p>
+</footer>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
   
