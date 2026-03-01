@@ -388,6 +388,11 @@ if (msg.type === "RESPONDER_LOCATION_UPDATE") {
   const { responderId, alertId, latitude, longitude } = msg;
   const newCoords = [latitude, longitude];
 
+log(routeCoordinates[alertId])
+  updateRouteProgress(alertId, newCoords);
+
+
+
   // Initialize marker if it doesn't exist
   if (!responderMarkers[responderId]) {
     responderMarkers[responderId] = L.marker(newCoords, {
@@ -424,8 +429,7 @@ if (msg.type === "RESPONDER_LOCATION_UPDATE") {
     map.panTo(newCoords, { animate: true });
   }
 
-    if (routeCoordinates[alertId])
-      updateRouteProgress(alertId, newCoords);
+  
 }
 
 
