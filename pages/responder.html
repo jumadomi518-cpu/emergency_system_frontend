@@ -540,11 +540,9 @@ function startNavigation(alertId, destLat, destLng) {
       rotationAngle: 0, 
       rotationOrigin: "center"
     }).addTo(map).bindPopup("your current location");
-
+log("Marker rotatable?")
     log(
-      "Marker rotatable?",
-      "setRotationAngle" in responderMarkers[alertId],
-      responderMarkers[alertId]
+      "setRotationAngle" in responderMarkers[alertId]
     );
   }
 
