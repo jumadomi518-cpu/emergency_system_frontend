@@ -540,12 +540,15 @@ function startNavigation(alertId, destLat, destLng) {
       rotationAngle: 0,
       rotationOrigin: 'center'
     }).addTo(map).bindPopup("your current location");
+
+    // DEBUG: check if rotation method exists
+    log(
+      "Marker rotatable?",
+      "setRotationAngle" in responderMarkers[alertId],
+      responderMarkers[alertId]
+    );
   }
-log(
-  "Marker rotatable?", 
-  "setRotationAngle" in responderMarkers[alertId], 
-  responderMarkers[alertId]
-);
+
   const marker = responderMarkers[alertId];
 
   // Get current location and set initial marker
@@ -559,7 +562,6 @@ log(
   currentWatchId = navigator.geolocation.watchPosition(pos => {
     const newCoords = [pos.coords.latitude, pos.coords.longitude];
 
-    
     // Initialize rotation state per marker if not set
     if (!marker.previousLatLng) {
       marker.previousLatLng = newCoords;
@@ -570,7 +572,6 @@ log(
       marker.previousLatLng = newCoords;
       marker.currentAngle = newBearing;
     }
-  
 
     // Smooth movement along GPS
     if (marker._latlng) {
