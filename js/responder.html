@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Emergency Response Dashboard</title>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    
+ * { 
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box; 
+      font-family: "Poppins",sans-serif;
+    }
+
+
+header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      padding: 0.2em 0.5em 0.5em 0.5em;
+      margin: 0.5em;
+      height: auto;
+      box-shadow: 0 0 4px 0 black;
+    }
+    
+    .heading {
+      display: grid;
+      place-items: center;
+      height: 10vh;
+    }
+  
+    
+    img {
+      height: 10vh;
+
+      
+    }
+  
+    h2 { 
+      padding: 0.5em;
+    }
+
+     
+    
+    #map { 
+      height: 400px; 
+      margin-bottom: 10px; 
+    }
+    table {
+      font-size: 1.2rem; 
+      width: 100%; 
+      border-collapse: collapse; 
+    }
+    
+    .table {
+    padding: 0.5em;
+
+     }
+    th,td { 
+      border: 1px solid #ccc; 
+      padding: 6px; 
+      text-align: center; 
+    }
+    
+    .accept { 
+      background: green; 
+      color: white;
+      padding: 0.3em;
+      border-radius: 0.2em;
+    }
+    .reject { 
+      background: red; 
+      color: white;
+      padding: 0.3em;
+      border-radius: 0.2em;
+    }
+    .resolve { 
+      background: purple; 
+      color: white;
+    }
+    .routeOption { 
+      background: #007bff; 
+      color: white; 
+      margin: 2px;
+    }
+    #routeInfo { 
+      margin-top: 8px; 
+      font-size: 14px; 
+    }
+    #debugPanel {
+      position:fixed; bottom:0; left:0; width:100%;
+      max-height:150px; overflow-y:auto;
+      background:rgba(0,0,0,0.8); color:#0f0;
+      font-size:11px; padding:5px; font-family:monospace;
+    }
+.routeCard {
+  font-size: 1.2rem;
+  display: flex;
+  padding: 0.3em;
+  margin: 0.3em;
+  justify-content: space-between;
+}
+
+h4 {
+ padding: 0.5em;
+ }
+
+.routeCard span {
+  display: inline-block;
+  margin-right: 10px;
+  font-size: 14px;
+  font-size: inherit;
+  padding: 0.5em;
+}
+
+.routeCard button {
+  padding: 4px 10px;
+  border: none;
+  background: #1976d2;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.routeCard.selected {
+  border: 2px solid #1976d2;
+  background: #e3f2fd;
+}
+.rem {
+  padding: 0.5em;
+}
+
+footer {
+    text-align: center;
+    font-size: 0.8rem !important;
+    width: 100%;
+    padding-top: 0.5em;
+    position: fixed;
+    bottom: 0;
+  }
+  footer p {
+    font-size: inherit;
+  }
+  </style>
+</head>
+<body>
+<header>
+   <img src="../assets/1771060588592.png" alt="logo" />
+<div class="heading">
+<h2>Emergency Response System Responder View.</h2>
+</div>
+</header>
+<div class="table">
+<table>
+<thead>
+<tr><th>Name</th><th>Phone</th><th>Message</th><th>Action</th><th>waiting</th></tr>
+</thead>
+<tbody id="rows"></tbody>
+</table>
+ <div class="rem">
+</div>
+</div>
+<div id="routeInfo">
+</div>
+<div id="map"></div>
+
+<div id="debugPanel"></div>
+<footer>
+  <p>&copy; 2026 Mbiu. All rights reserved.</p>
+</footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-rotatedmarker/leaflet.rotatedMarker.js"></script>
+<script>
+function log(msg) {
+  const panel = document.getElementById("debugPanel");
+  const time = new Date().toLocaleTimeString();
+  panel.innerText += `[${time}] ${typeof msg === "object" ? JSON.stringify(msg) : msg}\n`;
+  panel.scrollTop = panel.scrollHeight;
+}
+
+// CONFIG & STATE 
+const WS_URL = "wss://campus-emergency-server.onrender.com";
+const REST_URL = "https://campus-emergency-server.onrender.com/api";
+
+const role = localStorage.getItem("role");
+let ws, activeAssignment = null;
+const emergencyMarkers = {}, responderMarkers = {}, routeLines = {};
+const animationFrames = {};
+let currentWatchId = null;
+const userId = localStorage.getItem("userId");
+let previousLatLng = null;
+let currentAngle = 0;
+
+
+
+async function subscribePush() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(
+        "BLWqWGy69vEeRpqjfjM71X3HH9IfF9mDRhaXsqIdysfGLXE0Ur8HjgtyE0VfDK574WK_dbJ7s6uCenB7PmYRbQE"
+      )
+    });
+
+    await fetch(`${REST_URL}/subscribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: localStorage.getItem("userId"),
+        subscription: sub
+      })
+    });
+
+    log("Push subscription sent to server");
+
+  } catch (err) {
+    log("Push subscription failed: " + err.message);
+  }
+}
+
+
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, "+")
+    .replace(/_/g, "/");
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i)
+    outputArray[i] = rawData.charCodeAt(i);
+
+  return outputArray;
+}
+
+
+
+
+// --- MAP SETUP ---
+const map = L.map("map").setView([0, 0], 2);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+// SMOOTH MOVEMENT
+function animateMarker(marker, startPos, endPos, duration = 1000) {
+  const startTime = performance.now();
+
+  if (animationFrames[marker._leaflet_id]) cancelAnimationFrame(animationFrames[marker._leaflet_id]);
+
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 2);
+
+    const lat = startPos[0] + (endPos[0] - startPos[0]) * eased;
+    const lng = startPos[1] + (endPos[1] - startPos[1]) * eased;
+    marker.setLatLng([lat, lng]);
+
+    if (progress < 1) {
+      animationFrames[marker._leaflet_id] = requestAnimationFrame(step);
+    } else {
+      delete animationFrames[marker._leaflet_id];
+    }
+  }
+
+  animationFrames[marker._leaflet_id] = requestAnimationFrame(step);
+}
+
+function countDown(time) {
+  const rem = document.querySelector(".rem");
+  const p = document.createElement("p");
+  rem.appendChild(p);
+  let seconds = Number(time) * 60;
+ const t = setInterval(() => {
+    seconds = seconds - 1;
+    p.innerText = `Remaining: ${seconds} sec`;
+    if (seconds === 0) {
+      clearInterval(t);
+      alert("It's Time to save lives");
+    }
+  }, 1000)
+  
+  
+}
+
+
+function handleWaitingTime(time) {
+ const waiting = document.querySelector(".waiting");
+  waiting.innerText = time;
+
+ countDown(time);
+
+  }
+
+// WEBSOCKET
+function connectWS() {
+  ws = new WebSocket(WS_URL);
+
+  ws.onopen = () => {
+    const token = localStorage.getItem("token");
+    if (token) ws.send(JSON.stringify({ token }));
+    log("WS Connected. Role: " + role);
+  };
+
+  ws.onclose = () => setTimeout(connectWS, 3000);
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+
+    switch (msg.type) {
+      case "AUTH_SUCCESS":
+        requestInitialLocation();
+        subscribePush();
+        break;
+      case "EMERGENCY_ASSIGNMENT":
+        if (role !== "user") showAssignmentUI(msg);
+        break;
+      case "ALERT_RESOLVED":
+        removeAlert(msg.alertId);
+        break;
+      case "WAITING_TIME":
+        handleWaitingTime(msg.time);
+        break;
+    }
+  };
+}
+
+
+
+
+// FETCH ROUTES 
+function fetchRoutes(alertId, sLat, sLng, dLat, dLng) {
+  fetch(`https://router.project-osrm.org/route/v1/driving/${sLng},${sLat};${dLng},${dLat}?alternatives=true&overview=full&geometries=geojson`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.routes || data.routes.length === 0) return;
+
+      const routeDiv = document.getElementById("routeInfo");
+      routeDiv.innerHTML = "";
+
+      if (!routeLines[alertId]) routeLines[alertId] = [];
+      routeLines[alertId].forEach(line => map.removeLayer(line));
+      routeLines[alertId] = [];
+
+      const colors = ["blue", "green", "red", "orange", "purple"];
+      let bestIndex = 0, bestScore = Infinity;
+
+      data.routes.forEach((route, index) => {
+        const score = route.distance + route.duration;
+        if (score < bestScore) {
+          bestScore = score;
+          bestIndex = index;
+        }
+      });
+
+      data.routes.forEach((route, index) => {
+        const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+        const distance = (route.distance / 1000).toFixed(2);
+        const duration = (route.duration / 60).toFixed(1);
+
+        const polyline = L.polyline(coords, {
+          color: colors[index % colors.length],
+          weight: index === bestIndex ? 6 : 4,
+          opacity: index === bestIndex ? 1 : 0.6
+        }).addTo(map);
+
+        routeLines[alertId].push(polyline);
+
+        const card = document.createElement("div");
+        card.className = "routeCard";
+
+        const routeName = document.createElement("h4");
+        routeName.innerText = `Route ${String.fromCharCode(65 + index)}`;
+
+        const distanceSpan = document.createElement("span");
+        distanceSpan.innerText = `Distance: ${distance} km`;
+
+        const durationSpan = document.createElement("span");
+        durationSpan.innerText = `Duration: ${duration} min`;
+
+        const btn = document.createElement("button");
+        btn.innerText = index === bestIndex ? "Preferred" : "Use";
+
+        if (index === bestIndex) card.classList.add("selected");
+
+        btn.onclick = () => {
+          selectedRouteCoords = coords;
+          document.querySelectorAll(".routeCard").forEach(c => {
+            c.classList.remove("selected");
+            c.querySelector("button").innerText = "Use";
+          });
+
+          card.classList.add("selected");
+          btn.innerText = "Selected";
+
+          routeLines[alertId].forEach((line, i) => {
+            line.setStyle({ weight: i === index ? 6 : 4, opacity: i === index ? 1 : 0.6 });
+          });
+
+          map.fitBounds(polyline.getBounds());
+
+          ws.send(JSON.stringify({
+            type: "SELECTED_ROUTE",
+            alertId,
+            routeIndex: index,
+            distance,
+            duration,
+            coordsFromResponder: coords
+          }));
+        };
+
+        card.appendChild(routeName);
+        card.appendChild(distanceSpan);
+        card.appendChild(document.createElement("br"));
+        card.appendChild(durationSpan);
+        card.appendChild(document.createElement("br"));
+        card.appendChild(btn);
+        routeDiv.appendChild(card);
+      });
+
+      map.fitBounds(routeLines[alertId][bestIndex].getBounds());
+    });
+}
+
+//  LOCATION 
+function requestInitialLocation() {
+  navigator.geolocation.getCurrentPosition(pos => {
+    ws.send(JSON.stringify({
+      type: "LOCATION_UPDATE",
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude
+    }));
+  }, console.error, { enableHighAccuracy: true });
+}
+
+
+
+
+
+
+// UI & ASSIGNMENT
+function showAssignmentUI(msg) {
+  activeAssignment = msg;
+
+  if (!emergencyMarkers[msg.alertId]) {
+    emergencyMarkers[msg.alertId] = L.marker([msg.latitude, msg.longitude], {
+      icon: L.icon({
+        iconUrl: "../assets/destination.png",
+        iconSize: [32, 32]
+      })
+    }).addTo(map).bindPopup("Emergency location")
+  }
+  const rows = document.getElementById("rows");
+  const row = document.createElement("tr");
+  row.innerHTML = `
+    <td>${msg.name}</td>
+    <td>${msg.phone}</td>
+    <td>${msg.message}</td>
+    <td id="status-${msg.alertId}">
+      <button class="accept" onclick="respondToAssignment(${msg.alertId}, true)">Accept</button>
+      <button class="reject" onclick="respondToAssignment(${msg.alertId}, false)">Reject</button>
+    </td>
+       <td class="waiting"></td>
+  `;
+
+  
+  rows.appendChild(row);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  const queryString = window.location.search;
+  const urlParams = new URLSearchParams(queryString);
+  const alertIdParam = urlParams.get('alertId');
+  const alertId = alertIdParam ? Number(alertIdParam) : null;
+
+  log("Using alertId:");
+  log(alertId);
+
+if (alertId) {
+  async function fetchAlert() {
+    try {
+      const response = await fetch(`${REST_URL}/alert_info/${alertId}`);
+      const data = await response.json();
+ 
+      log(data);
+      const formatted = {
+        alertId: data.id,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        name: data.name,
+        phone: data.phone,
+        message: data.message || data.emergency_type
+      };
+     showAssignmentUI(formatted);
+    } catch (err) {
+    
+      log(err.message);
+    }
+  }
+  fetchAlert();
+}});
+
+
+
+
+function respondToAssignment(alertId, accept) {
+  ws.send(JSON.stringify({ type: "RESPONDER_RESPONSE", userId: userId, alertId, accept }));
+
+  if (accept) {
+    document.getElementById(`status-${alertId}`).innerText = "Accepted";
+    startNavigation(alertId, activeAssignment.latitude, activeAssignment.longitude);
+
+    // Fetch routes after getting current location
+    navigator.geolocation.getCurrentPosition(pos => {
+      fetchRoutes(alertId, pos.coords.latitude, pos.coords.longitude,
+                  activeAssignment.latitude, activeAssignment.longitude);
+    }, console.error, { enableHighAccuracy: true });
+  } else {
+
+  document.getElementById(`status-${alertId}`).innerText = "Rejected";
+   }
+}
+
+// NAVIGATION 
+function startNavigation(alertId, destLat, destLng) {
+  if (currentWatchId) navigator.geolocation.clearWatch(currentWatchId);
+
+  
+  if (!responderMarkers[alertId]) {
+    responderMarkers[alertId] = L.marker([0, 0], {  
+      icon: L.icon({
+        iconUrl: "../assets/emergency.png",
+        iconSize: [32, 32]
+      }),
+      rotationAngle: 0, 
+      rotationOrigin: "center"
+    }).addTo(map).bindPopup("your current location");
+log("Marker rotatable?")
+    log(
+      "setRotationAngle" in responderMarkers[alertId]
+    );
+  }
+
+  const marker = responderMarkers[alertId];
+
+  // Get current location and set initial marker
+  navigator.geolocation.getCurrentPosition(pos => {
+    const start = [pos.coords.latitude, pos.coords.longitude];
+    marker.setLatLng(start);
+    map.setView(start, 15);
+  });
+
+  // Watch GPS for live updates
+  currentWatchId = navigator.geolocation.watchPosition(pos => {
+    const newCoords = [pos.coords.latitude, pos.coords.longitude];
+
+    if (!marker.previousLatLng) {
+      marker.previousLatLng = newCoords;
+      marker.currentAngle = 0;
+    } else {
+      const newBearing = calculateBearing(marker.previousLatLng, newCoords);
+      smoothRotate(marker, marker.currentAngle, newBearing);
+      marker.previousLatLng = newCoords;
+      marker.currentAngle = newBearing;
+    }
+
+    // Smooth movement along GPS
+    if (marker._latlng) {
+      animateMarker(marker, [marker._latlng.lat, marker._latlng.lng], newCoords, 1000);
+    } else {
+      marker.setLatLng(newCoords);
+    }
+
+    // Send live location to backend
+    ws.send(JSON.stringify({
+      type: "LOCATION_UPDATE",
+      alertId,
+      latitude: newCoords[0],
+      longitude: newCoords[1]
+    }));
+  }, console.error, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+}
+
+
+//BEARING FUNCTION
+function calculateBearing(start, end) {
+  const lat1 = start[0] * Math.PI / 180;
+  const lat2 = end[0] * Math.PI / 180;
+  const dLng = (end[1] - start[1]) * Math.PI / 180;
+
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+
+  const brng = Math.atan2(y, x);
+
+  return (brng * 180 / Math.PI + 360) % 360;
+}
+
+
+//SMOOTH ROTATION FUNCTION
+function smoothRotate(marker, startAngle, endAngle, duration = 300) {
+  const startTime = performance.now();
+
+  let delta = endAngle - startAngle;
+
+  // Rotate via shortest path
+  if (delta > 180) delta -= 360;
+  if (delta < -180) delta += 360;
+
+  function animate(time) {
+    const progress = (time - startTime) / duration;
+
+    if (progress < 1) {
+      const angle = startAngle + delta * progress;
+      marker.setRotationAngle(angle);
+      requestAnimationFrame(animate);
+    } else {
+      marker.setRotationAngle(endAngle);
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+
+function removeAlert(id) {
+  if (emergencyMarkers[id]) map.removeLayer(emergencyMarkers[id]);
+  if (responderMarkers[id]) map.removeLayer(responderMarkers[id]);
+  delete responderMarkers[id];
+  delete emergencyMarkers[id];
+}
+
+connectWS();
+</script>
+</body>
+</html>

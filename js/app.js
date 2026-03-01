@@ -397,7 +397,7 @@ if (msg.type === "RESPONDER_LOCATION_UPDATE") {
       }),
       rotationAngle: 0,      // plugin required
       rotationOrigin: 'center'
-    }).addTo(map);
+    }).addTo(map).bindPopup("Responder");
 
     // Initialize rotation state per marker
     responderMarkers[responderId].previousLatLng = newCoords;
@@ -424,15 +424,8 @@ if (msg.type === "RESPONDER_LOCATION_UPDATE") {
     map.panTo(newCoords, { animate: true });
   }
 
-  
-  if (!routeCoordinates[String(alertId)]) {
-    log("No route coordinates for this id")
-    log(alertId)
-  } else {
-    updateRouteProgress(String(alertId), newCoords);
-    log("update route progress called");
-    log(alertId);
-  }
+    if (routeCoordinates[alertId])
+      updateRouteProgress(alertId, newCoords);
 }
 
 
