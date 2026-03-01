@@ -170,7 +170,7 @@ footer {
   <p>&copy; 2026 Mbiu. All rights reserved.</p>
 </footer>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
+<script src="https://rawgit.com/bbecquet/Leaflet.RotatedMarker/master/leaflet.rotatedMarker.js"></script>
 <script>
 function log(msg) {
   const panel = document.getElementById("debugPanel");
@@ -526,7 +526,68 @@ function respondToAssignment(alertId, accept) {
    }
 }
 
+// NAVIGATION 
+function startNavigation(alertId, destLat, destLng) {
+  if (currentWatchId) navigator.geolocation.clearWatch(currentWatchId);
 
+  // Initialize responder marker if it doesn't exist
+  if (!responderMarkers[alertId]) {
+    responderMarkers[alertId] = L.marker([0, 0], {
+      icon: L.icon({
+        iconUrl: "../assets/emergency.png",
+        iconSize: [32, 32]
+      }),
+      rotationAngle: 0,
+      rotationOrigin: 'center'
+    }).addTo(map).bindPopup("your current location");
+  }
+
+  const marker = responderMarkers[alertId];
+
+  // Get current location and set initial marker
+  navigator.geolocation.getCurrentPosition(pos => {
+    const start = [pos.coords.latitude, pos.coords.longitude];
+    marker.setLatLng(start);
+    map.setView(start, 15);
+  });
+
+  // Watch GPS for live updates
+  currentWatchId = navigator.geolocation.watchPosition(pos => {
+    const newCoords = [pos.coords.latitude, pos.coords.longitude];
+
+    
+    // Initialize rotation state per marker if not set
+    if (!marker.previousLatLng) {
+      marker.previousLatLng = newCoords;
+      marker.currentAngle = 0;
+    } else {
+      const newBearing = calculateBearing(marker.previousLatLng, newCoords);
+      smoothRotate(marker, marker.currentAngle, newBearing);
+      marker.previousLatLng = newCoords;
+      marker.currentAngle = newBearing;
+    }
+  
+
+    // Smooth movement along GPS
+    if (marker._latlng) {
+      animateMarker(marker, [marker._latlng.lat, marker._latlng.lng], newCoords, 1000);
+    } else {
+      marker.setLatLng(newCoords);
+    }
+
+    // Send live location to backend
+    ws.send(JSON.stringify({
+      type: "LOCATION_UPDATE",
+      alertId,
+      latitude: newCoords[0],
+      longitude: newCoords[1]
+    }));
+
+  }, console.error, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+}
+
+
+//BEARING FUNCTION
 function calculateBearing(start, end) {
   const lat1 = start[0] * Math.PI / 180;
   const lat2 = end[0] * Math.PI / 180;
@@ -543,13 +604,13 @@ function calculateBearing(start, end) {
 }
 
 
-
+//SMOOTH ROTATION FUNCTION
 function smoothRotate(marker, startAngle, endAngle, duration = 300) {
   const startTime = performance.now();
 
   let delta = endAngle - startAngle;
 
-  // Rotate using shortest direction
+  // Rotate via shortest path
   if (delta > 180) delta -= 360;
   if (delta < -180) delta += 360;
 
@@ -568,68 +629,6 @@ function smoothRotate(marker, startAngle, endAngle, duration = 300) {
   requestAnimationFrame(animate);
 }
 
-
-
-
-// NAVIGATION 
-function startNavigation(alertId, destLat, destLng) {
-  if (currentWatchId) navigator.geolocation.clearWatch(currentWatchId);
-
-  if (!responderMarkers[alertId]) {
-    responderMarkers[alertId] = L.marker([0, 0], {
-      icon: L.icon(
-        {
-          iconUrl: "../assets/emergency.png",
-          iconSize: [32, 32]
-        }
-      )
-    }).addTo(map).bindPopup("your current location")
-  }
-
-  navigator.geolocation.getCurrentPosition(pos => {
-    const start = [pos.coords.latitude, pos.coords.longitude];
-    responderMarkers[alertId].setLatLng(start);
-    map.setView(start, 15);
-  });
-
-  currentWatchId = navigator.geolocation.watchPosition(pos => {
-    const newCoords = [pos.coords.latitude, pos.coords.longitude];
-      
-    const marker = responderMarkers[alertId];
-    
-    
-    
-    
-    //rotation
-    if (!previousLatLng) {
-      previousLatLng = newCoords;
-      return;
-    }
-    const newBearing = calculateBearing(previousLatLng, newCoords);
-    smoothRotate(marker, currentAngle, newBearing);
-    currentAngle = newBearing;
-    previousLatLng = newCoords;
-    
-    
-  
-  
-  
-  
-
-    if (marker._latlng) {
-      animateMarker(marker, [marker._latlng.lat, marker._latlng.lng], newCoords, 1000);
-    } else {
-      marker.setLatLng(newCoords);
-    }
-
-    ws.send(JSON.stringify({
-      type: "LOCATION_UPDATE",
-      alertId,
-      latitude: newCoords[0],
-      longitude: newCoords[1]
-    }));
-  }, console.error, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
-}
 
 function removeAlert(id) {
   if (emergencyMarkers[id]) map.removeLayer(emergencyMarkers[id]);
