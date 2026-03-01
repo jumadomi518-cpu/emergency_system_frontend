@@ -223,8 +223,15 @@ async function vote(vot) {
       if (!res.ok) {
         throw new Error("Validation failed");
       }
-       window.location.replace("../pages/success.html");
+      const status = await res.json();
+      if (status.success) {
+        window.location.replace("../pages/success.html");
+      }
+       
      } catch (error) {
+       falseBtn.removeAttribute("disabled");
+           trueBtn.removeAttribute("disabled");
+           alert("An error occurred. Please try again.")
        console.log(error.message)
      }
    }
