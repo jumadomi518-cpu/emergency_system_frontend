@@ -79,7 +79,7 @@ header {
   }
   
   .buttons button {
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     display: block;
     width: 100%;
     padding: 0.5em;
@@ -117,6 +117,10 @@ header {
     height: 20vh;
   }
 
+.submit:active {
+  background-color: green;
+  color: white;
+}
   
   .msgCont {
     padding: 1.5em;
@@ -217,10 +221,12 @@ font-size: 1.3rem;
   display: flex;
   justify-content: space-between;
   padding: 0.7em;
+  font-size: 1.4rem;
 }
 .true, .false {
   padding: 0.5em;
   border-radius: 0.4em;
+  font-size: 1.4rem;
 }
 
 .true {
@@ -282,7 +288,7 @@ font-size: 1.3rem;
 </div>
 
 <div class="emergencyBtnContainer">
-<button onclick="trigger()">Submit</button>
+<button onclick="trigger()" class="submit">Submit</button>
 </div>
 <div class="tracking">
 <button onclick="start()">Start Tracking</button>
