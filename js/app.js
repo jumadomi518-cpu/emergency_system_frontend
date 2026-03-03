@@ -248,7 +248,6 @@ window.vote = vote;
 // EMERGENCY TRIGGER
  async function trigger(){
 const user = localStorage.getItem("userId");
-alert(user);
   navigator.geolocation.getCurrentPosition( async (pos) => {
 
     const { latitude, longitude } = pos.coords;
@@ -271,7 +270,8 @@ console.log(emergencyType);
  const response = await fetch(`${REST_URL}/emergency`, {
   method: "POST",
   headers: {
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${localStorage.getItem("token")}`
   },
   body: JSON.stringify({
     latitude: latitude,
