@@ -246,19 +246,8 @@ async function vote(vot) {
 window.vote = vote;
 
 // EMERGENCY TRIGGER
-function trigger(){
-
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    alert("Establishing connection please wait...");
-    return;
-  }
-
-  if (!isAuthenticated) {
-    alert("Still authenticating.");
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(pos => {
+ async function trigger(){
+  navigator.geolocation.getCurrentPosition( async (pos) => {
 
     const { latitude, longitude } = pos.coords;
     const message = document.getElementById("msg").value;
@@ -269,16 +258,37 @@ function trigger(){
       return;
     }
 console.log(emergencyType);
-    ws.send(JSON.stringify({
+   /* ws.send(JSON.stringify({
       type: "EMERGENCY",
       message,
       latitude,
       longitude,
       emergencyType
-    }));
+    }));*/
 
-    alert("Emergency sent!");
-    document.getElementById("msg").value = "";
+ const response = await fetch(`${REST_URL}/emergency`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    latitude: latitude,
+    longitude: longitude,
+    message: message,
+    emergencyType: emergencyType,
+    role: localStorage.getItem("role")
+  })
+});
+
+const data = await response.json();
+
+if (data.success) {
+  alert(data.message);
+  document.getElementById("msg").value = "";
+} else {
+  alert(data.error);
+}
+  
 
   }, err => alert(err.message), { enableHighAccuracy: true });
 }
