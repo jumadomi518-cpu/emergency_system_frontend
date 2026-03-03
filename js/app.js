@@ -247,6 +247,8 @@ window.vote = vote;
 
 // EMERGENCY TRIGGER
  async function trigger(){
+const user = localStorage.getItem("userId");
+alert(user);
   navigator.geolocation.getCurrentPosition( async (pos) => {
 
     const { latitude, longitude } = pos.coords;
@@ -276,7 +278,7 @@ console.log(emergencyType);
     longitude: longitude,
     message: message,
     emergencyType: emergencyType,
-    user: localStorage.getItem("userId")
+    user: user
   })
 });
 
