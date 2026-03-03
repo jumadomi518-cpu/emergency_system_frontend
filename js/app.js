@@ -35,7 +35,7 @@ let toggleRobbery = true;
 const accident = document.getElementById("accident");
 const robbery = document.getElementById("robbery");
 const fire = document.getElementById("fire");
-const submitBtn = document.querySelector(". submit")
+
 
 accident.onclick = () => {
 emergencyType = toggleAccident ? "ACCIDENT" : null;
@@ -248,16 +248,18 @@ window.vote = vote;
 // EMERGENCY TRIGGER
  async function trigger(){
 const user = localStorage.getItem("userId");
-submitBtn.disabled = "true";
+const submitBtn = document.querySelector(".submit");
+submitBtn.disabled = true;
 submitBtn.innerText = "processing...";
   navigator.geolocation.getCurrentPosition( async (pos) => {
-
     const { latitude, longitude } = pos.coords;
     const message = document.getElementById("msg").value;
     
 
     if (!emergencyType) {
       alert("Select emergency type.");
+      submitBtn.disabled = false;
+submitBtn.innerText = "submit";
       return;
     }
 console.log(emergencyType);
@@ -288,13 +290,12 @@ const data = await response.json();
 
 if (data.success) {
   alert("Emergency send successfully validation have started. Don't close the site. You will be connected shortly to the responder.");
-  submitBtn.innerText = "submit";
   document.getElementById("msg").value = "";
-  
+submitBtn.innerText = "submited";
 } else {
   alert(data.error);
-  submitBtn.disabled = "false";
-  submitBtn.innerText = "submit";
+  submitBtn.disabled = false;
+submitBtn.innerText = "submit";
 }
   
 
