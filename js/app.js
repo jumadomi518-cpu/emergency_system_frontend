@@ -276,7 +276,7 @@ console.log(emergencyType);
     longitude: longitude,
     message: message,
     emergencyType: emergencyType,
-    role: localStorage.getItem("role")
+    user: localStorage.getItem("userId")
   })
 });
 
