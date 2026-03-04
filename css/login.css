@@ -28,7 +28,7 @@
       font-size: 1.2rem;
       display: flex;
       flex-direction: column;
-      padding: 4em;
+      padding: 2em;
       background-color: lightgrey;
       color: rgba(0, 0, 0, 0.8);
       box-shadow: 0 0 4px 0 black;
@@ -40,6 +40,7 @@
     
     button {
       margin: 2em auto 1.2em auto;
+      overflow: scroll;
       padding: 0.4em;
       width: 100%;
       font-size: 1.4rem;
@@ -77,6 +78,7 @@
       border-radius: 10px;
       color: rgba(0, 0, 0, 0.9);
       text-align: center;
+      overflow: scroll;
     }
   
    .errorMsg {
@@ -109,6 +111,7 @@
     padding-top: 0.5em;
     position: fixed;
     bottom: 0;
+    background-color: white;
   }
   footer p {
     font-size: inherit;

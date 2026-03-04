@@ -32,10 +32,10 @@ h1 {
       font-size: 1.2rem;
       display: flex;
       flex-direction: column;
-      padding: 4em;
+      padding: 2em;
       background-color: ghostwhite;
       color: rgba(0, 0, 0, 0.8);
-      box-shadow: 0 0 4px 0 black;
+      box-shadow: 0 0 4px 0 green;
     }
     main {
       padding: 3em;
@@ -77,6 +77,7 @@ border: 2px solid red;
       text-decoration: none;
       display: inline-block;
       padding: 0.1em;
+      overflow: scroll;
 
     }
     .errorMsg {
