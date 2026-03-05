@@ -87,7 +87,7 @@ p {
           let i = 1;
           for (const n of alerts) {
             const number = document.createElement("p");
-            p.innerText = i;
+            number.innerText = i;
             const name = document.createElement("p");
             name.innerText = n.name;
             const phone = document.createElement("p");
@@ -95,7 +95,7 @@ p {
             const message = document.createElement("p");
             message.innerText = n.message;
             const type = document.createElement("p");
-            type.innerText = n.emergence_type;
+            type.innerText = n.emergency_type;
             const status = document.createElement("p");
             status.innerText = n.status;
             main.appendChild(number)
