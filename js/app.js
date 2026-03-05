@@ -291,7 +291,7 @@ const data = await response.json();
 if (data.success) {
   alert("Emergency send successfully validation have started. Don't close the site. You will be connected shortly to the responder.");
   document.getElementById("msg").value = "";
-submitBtn.innerText = "submited";
+submitBtn.innerText = "validating...";
 } else {
   alert(data.error);
   submitBtn.disabled = false;
@@ -371,6 +371,8 @@ async function handleWSMessage(event){
 
   if (msg.type === "EMERGENCY_ASSIGNMENT") {
     const { latitude, longitude, message } = msg;
+    const submitBtn = document.querySelector(".submit");
+    submitBtn.innerText = "Assigned";
 
     if (emergencyMarker) map.removeLayer(emergencyMarker);
 
