@@ -83,7 +83,7 @@ p {
         if (!response.ok) {
           throw new Error("The response was not ok");
         }
-          const alerts = response.json();
+          const alerts = await response.json();
           let i = 1;
           for (const n of alerts) {
             const number = document.createElement("p");
