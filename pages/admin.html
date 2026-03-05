@@ -39,23 +39,31 @@
     div h2 { 
       padding: 0.5em;
     }
-main {
+.alerts {
   font-size: 0.8rem;
   margin: 0.3em;
   padding: 0.3em;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(9, 1fr);
   overflow: scroll;
 }
 
-main h2, main p {
+.alerts h2, .alerts p {
   border: 2px solid gray;
   padding: 0.3em;
 }
 p {
   font-size: 1.3rem;
 }
-     
+     .analytics {
+       font-size: 1.3rem;
+       padding: 0.3em;
+       margin: 0.3em;
+       border: 2px solid green;
+     }
+     span {
+       color: green;
+     }
   </style>
 </head>
 
@@ -67,15 +75,29 @@ p {
 </div>
 </header>
   <main>
+    <div class="analytics">
+    </div>
+    <div class="alerts">
     <h2>#</h2>
     <h2>Name</h2>
     <h2>Phone</h2>
     <h2>Message</h2>
     <h2>Emergency Type</h2>
     <h2>Status</h2>
+    <h2>Triggered at</h2>
+    <h2>Arrived at</h2>
+    <h2>Resolved at</h2>
+    </div>
   </main>
   <script>
-    const main = document.querySelector("main");
+    const alerts = document.querySelector(".alerts");
+    const analytics = document.querySelector(".analytics");
+    async function getAnalytics() {
+      
+}
+    
+    
+    
     
     async function getAlerts() {
       try {
@@ -98,12 +120,48 @@ p {
             type.innerText = n.emergency_type;
             const status = document.createElement("p");
             status.innerText = n.status;
-            main.appendChild(number)
-            main.appendChild(name)
-            main.appendChild(phone)
-            main.appendChild(message)
-            main.appendChild(type)
-            main.appendChild(status)
+            const triggered = document.createElement("p");
+            triggered.innerText = new Date(n.created_at).toLocaleString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+               hour: "2-digit",
+               minute: "2-digit",
+              second: "2-digit",
+              hour12: true
+              });
+            const arrived = document.createElement("p");
+            arrived.innerText = new Date(n.arrived_at).toLocaleString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+               hour: "2-digit",
+               minute: "2-digit",
+              second: "2-digit",
+              hour12: true
+              });
+            const resolved = document.createElement("p");
+            resolved.innerText = new Date(n.resolved_at).toLocaleString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+               hour: "2-digit",
+               minute: "2-digit",
+              second: "2-digit",
+              hour12: true
+              });
+
+            
+            alerts.appendChild(number);
+            alerts.appendChild(name);
+            alerts.appendChild(phone);
+            alerts.appendChild(message);
+            alerts.appendChild(type)
+            alerts.appendChild(status);
+            alerts.appendChild(triggered);
+            alerts.appendChild(arrived);
+            alerts.appendChild(resolved);
+            
             i++;
           }
           
