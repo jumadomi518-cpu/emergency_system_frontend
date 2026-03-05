@@ -103,10 +103,24 @@ p {
     
     
     async function getAnalytics() {
+      try {
+        const res = await fetch("https://campus-emergency-server.onrender.com/api/analytics");
+        const data = await res.json();
+        
+        analytics.innerHTML = `<p>Total emergencies triggered: <span>${data.totalAlerts}</span></p>
+      <p>Active emergencies: <span>${data.active}</span></p>
+      <p>Resolved emergencies: <span>${data.resolved}</span></p>
+      <p>Pending emergencies: <span>${data.pending}</span></p>
+          <p>Average response time: <span>${formatSeconds(data.averageTime)}</span></p>`;
+        
+        
+      } catch (error) {
+        console.log("An error occurred during fetching analytics " error.message)
+      }
       
-}
+      }
     
-    
+    getAnalytics();
     
     
     async function getAlerts() {
