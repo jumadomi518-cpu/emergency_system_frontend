@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title></title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      font-family: "Poppins", sans-serif;
+      box-sizing: border-box;
+    }
+  
+    header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      padding: 0.2em 0.5em 0.5em 0.5em;
+      margin: 0.5em;
+      height: auto;
+      box-shadow: 0 0 4px 0 black;
+    }
+    
+    .heading {
+      display: grid;
+      place-items: center;
+      height: 10vh;
+    }
+  
+    
+    img {
+      height: 10vh;
+
+      
+    }
+  
+    div h2 { 
+      padding: 0.5em;
+    }
+main {
+  font-size: 0.8rem;
+  margin: 0.3em;
+  padding: 0.3em;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  overflow: scroll;
+}
+
+main h2, main p {
+  border: 2px solid gray;
+  padding: 0.3em;
+}
+p {
+  font-size: 1.3rem;
+}
+     
+  </style>
+</head>
+
+<body>
+  <header>
+   <img src="../assets/1771060588592.png" alt="logo" />
+<div class="heading">
+<h2>Mbiu Emergency Response System Admin Dashboard.</h2>
+</div>
+</header>
+  <main>
+    <h2>#</h2>
+    <h2>Name</h2>
+    <h2>Phone</h2>
+    <h2>Message</h2>
+    <h2>Emergency Type</h2>
+    <h2>Status</h2>
+  </main>
+  <script>
+    const main = document.querySelector("main");
+    
+    async function getAlerts() {
+      try {
+        const response = await fetch( "https://campus-emergency-server.onrender.com/api/alerts");
+        if (!response.ok) {
+          throw new Error("The response was not ok");
+        }
+          const alerts = response.json();
+          let i = 1;
+          for (const n of alerts) {
+            const number = document.createElement("p");
+            p.innerText = i;
+            const name = document.createElement("p");
+            name.innerText = n.name;
+            const phone = document.createElement("p");
+            phone.innerText = n.phone;
+            const message = document.createElement("p");
+            message.innerText = n.message;
+            const type = document.createElement("p");
+            type.innerText = n.emergence_type;
+            const status = document.createElement("p");
+            status.innerText = n.status;
+            main.appendChild(number)
+            main.appendChild(name)
+            main.appendChild(phone)
+            main.appendChild(message)
+            main.appendChild(type)
+            main.appendChild(status)
+            i++;
+          }
+          
+          
+        
+      } catch (error) {
+        console.log("An error occurred when fetching alerts ", error.message)
+      }
+      
+      
+    }
+    
+    getAlerts();
+  </script>
+</body>
+
+</html>
