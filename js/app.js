@@ -371,9 +371,6 @@ async function handleWSMessage(event){
 
   if (msg.type === "EMERGENCY_ASSIGNMENT") {
     const { latitude, longitude, message } = msg;
-    const submitBtn = document.querySelector(".submit");
-    submitBtn.innerText = "Assigned";
-
     if (emergencyMarker) map.removeLayer(emergencyMarker);
 
     emergencyMarker = L.marker([latitude, longitude], {
@@ -387,6 +384,8 @@ async function handleWSMessage(event){
   }
 
   if (msg.type === "SELECTED_ROUTE") {
+const submitBtn = document.querySelector(".submit");
+    submitBtn.innerText = "Assigned";
 
    log("SELECTED ROUTE RECEIVED TO THE CREATOR");
     const { alertId, coordsFromResponder, distance, duration } = msg;
