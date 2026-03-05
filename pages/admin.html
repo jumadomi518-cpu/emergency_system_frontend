@@ -105,9 +105,9 @@ p {
         if (!response.ok) {
           throw new Error("The response was not ok");
         }
-          const alerts = await response.json();
+          const data = await response.json();
           let i = 1;
-          for (const n of alerts) {
+          for (const n of data) {
             const number = document.createElement("p");
             number.innerText = i;
             const name = document.createElement("p");
