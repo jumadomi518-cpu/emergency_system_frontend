@@ -526,7 +526,7 @@ function drawFullRoute(alertId){
 }
 
 // ROUTE PROGRESS
-function updateRouteProgress(alertId, currentLatLng){
+async function updateRouteProgress(alertId, currentLatLng){
 
   const route = routeCoordinates[alertId];
   if (!route) return;
@@ -568,6 +568,7 @@ function updateRouteProgress(alertId, currentLatLng){
      | Distance left: ${(distanceLeft/1000).toFixed(2)} km`;
 
   if (distanceLeft < 10 && !arrivalTriggered[alertId]) {
+    await fetch(`${REST_URL}/arrival/${alertId}`);
     arrivalTriggered[alertId] = true;
     alert("Responder has arrived.");
   }
