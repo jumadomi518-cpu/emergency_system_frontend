@@ -625,14 +625,26 @@ log("Marker rotatable?")
 
 
 function handleOfflineRecovery(msg) {
-    log("offline recovery called");
-    log(msg)
-  document.getElementById(`status-${alertId}`).innerHTML = `<button class="resolve" onclick="resolve(${msg.alertId})">resolve</button>`;
-    startNavigation(msg.alertId, msg.latitude, msg.longitude);
-    L.polyline(msg.route, {
-      color: "green",
-      weight: 5
-    }).addTo(map);
+  log("offline recovery called");
+  log(msg);
+
+  if (!document.getElementById(`status-${msg.alertId}`)) {
+    showAssignmentUI(msg);
+  }
+
+  document.getElementById(`status-${msg.alertId}`).innerHTML =
+    `<button class="resolve" onclick="resolve(${msg.alertId})">resolve</button>`;
+
+  startNavigation(msg.alertId, msg.latitude, msg.longitude);
+
+  const coords = msg.route.map(c => [c[1], c[0]]);
+
+  const line = L.polyline(coords, {
+    color: "green",
+    weight: 5
+  }).addTo(map);
+
+  map.fitBounds(line.getBounds());
 }
 
 
