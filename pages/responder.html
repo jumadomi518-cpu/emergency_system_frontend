@@ -513,7 +513,7 @@ if (alertId) {
 
 async function resolve(alertId) {
   try {
-    const response = await fetch(`${REST_URL}/api/resolve/${alertId}`, {
+    const response = await fetch(`${REST_URL}/resolve/${alertId}`, {
       method: "PATCH"
     })
     if (!response.ok) {
