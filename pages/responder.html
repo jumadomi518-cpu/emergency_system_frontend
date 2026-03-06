@@ -97,7 +97,6 @@ header {
       position:fixed; bottom:0; left:0; width:100%;
       max-height:150px; overflow-y:auto;
       background:rgba(0,0,0,0.8); color:#0f0;
-      display: none;
       font-size:11px; padding:5px; font-family:monospace;
     }
 .routeCard {
@@ -626,7 +625,8 @@ log("Marker rotatable?")
 
 
 function handleOfflineRecovery(msg) {
-  alert("offline recovery called");
+    log("offline recovery called");
+    log(msg)
   document.getElementById(`status-${alertId}`).innerHTML = `<button class="resolve" onclick="resolve(${msg.alertId})">resolve</button>`;
     startNavigation(msg.alertId, msg.latitude, msg.longitude);
     L.polyline(msg.route_path, {
