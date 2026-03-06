@@ -568,7 +568,9 @@ async function updateRouteProgress(alertId, currentLatLng){
      | Distance left: ${(distanceLeft/1000).toFixed(2)} km`;
 
   if (distanceLeft < 10 && !arrivalTriggered[alertId]) {
-    await fetch(`${REST_URL}/arrival/${alertId}`);
+    await fetch(`${REST_URL}/arrival/${alertId}`, {
+  method: "PATCH"
+});
     arrivalTriggered[alertId] = true;
     alert("Responder has arrived.");
   }
