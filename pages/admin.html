@@ -56,13 +56,19 @@ p {
   font-size: 1.3rem;
 }
      .analytics {
-       font-size: 1.3rem;
+       font-size: 1.4rem;
        padding: 0.3em;
        margin: 0.3em;
        border: 2px solid green;
      }
+     .analytics p {
+       font-size: inherit;
+       margin: 0.3em;
+     }
      span {
+       font-size: 1.5rem;
        color: green;
+       font-weight: bold;
      }
   </style>
 </head>
@@ -111,8 +117,9 @@ p {
       <p>Active emergencies: <span>${data.active}</span></p>
       <p>Resolved emergencies: <span>${data.resolved}</span></p>
       <p>Pending emergencies: <span>${data.pending}</span></p>
+      <p>In progress emergencies: <span>${data.inProgress}</span></p>
           <p>Average response time: <span>${formatSeconds(data.averageTime)}</span></p>
-          <p>In progress emergencies: <span>${data.inProgress}</span></p>`;
+          `;
         
         
       } catch (error) {
