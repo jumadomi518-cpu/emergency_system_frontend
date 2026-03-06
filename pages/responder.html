@@ -629,7 +629,7 @@ function handleOfflineRecovery(msg) {
     log(msg)
   document.getElementById(`status-${alertId}`).innerHTML = `<button class="resolve" onclick="resolve(${msg.alertId})">resolve</button>`;
     startNavigation(msg.alertId, msg.latitude, msg.longitude);
-    L.polyline(msg.route_path, {
+    L.polyline(msg.route, {
       color: "green",
       weight: 5
     }).addTo(map);
