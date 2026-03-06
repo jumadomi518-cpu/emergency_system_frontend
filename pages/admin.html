@@ -44,7 +44,7 @@
   margin: 0.3em;
   padding: 0.3em;
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
+  grid-template-columns: repeat(10, 1fr);
   overflow: scroll;
 }
 
@@ -93,6 +93,7 @@ p {
     <h2>Triggered at</h2>
     <h2>Arrived at</h2>
     <h2>Resolved at</h2>
+    <h2>Response time</h2>
     </div>
   </main>
   <script>
@@ -106,6 +107,16 @@ p {
   return `${h > 0 ? h + "h " : ""}${m > 0 ? m + "m " : ""}${s}s`;
 }
 
+function calculateResponseTime(createdTime, arrivalTime) {
+  if (!createdTime || !arrivalTime) return null;
+  const created = new Date(createdTime);
+  const arrived = new Date(arrivalTime);
+  const diffMs = arrived - created;
+  if (diffMs < 0) return 0;
+  const diffSeconds = diffMs / 1000;
+  return formatSeconds(diffSeconds);
+}
+    
     
     
     async function getAnalytics() {
@@ -161,7 +172,7 @@ p {
                minute: "2-digit",
               second: "2-digit",
               hour12: true
-              }) : "-";
+              }) : "-pending";
             const arrived = document.createElement("p");
             arrived.innerText = n.arrived_at ? new Date(n.arrived_at).toLocaleString("en-US", {
               year: "numeric",
@@ -171,7 +182,7 @@ p {
                minute: "2-digit",
               second: "2-digit",
               hour12: true
-              }) : "-";
+              }) : "-pending";
             const resolved = document.createElement("p");
             resolved.innerText = n.resolved_at ? new Date(n.resolved_at).toLocaleString("en-US", {
               year: "numeric",
@@ -181,8 +192,11 @@ p {
                minute: "2-digit",
               second: "2-digit",
               hour12: true
-              }) : "-";
+              }) : "-pending";
+            const responseTime = document.createElement("p");
+            responseTime.innerText = n.arrived_at ?  `${calculateResponseTime(n.created_at, n.arrived_at)}` : "-pending";
 
+            
             
             alerts.appendChild(number);
             alerts.appendChild(name);
@@ -193,7 +207,7 @@ p {
             alerts.appendChild(triggered);
             alerts.appendChild(arrived);
             alerts.appendChild(resolved);
-            
+            alerts.appendChild(responseTime);
             i++;
           }
           
