@@ -333,6 +333,9 @@ function connectWS() {
       case "WAITING_TIME":
         handleWaitingTime(msg.time);
         break;
+      case "OFFLINE_RECOVERY":
+        handleOfflineRecovery(msg);
+        break;
     }
   };
 }
@@ -528,6 +531,7 @@ async function resolve(alertId) {
     const result = await response.json();
     if (result.success) {
       alert("The emergency has been resolved successfully. Thanks for your good work.")
+      removeAlert(alertId);
     } else {
       alert(result.error);
       resolvBtn.disabled = "false";
@@ -536,6 +540,7 @@ async function resolve(alertId) {
     alert("An error occurred. Please try again.");
     resolvBtn.disabled = "false";
   }
+  
 }
 
 
@@ -616,6 +621,20 @@ log("Marker rotatable?")
     }));
   }, console.error, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
 }
+
+
+
+
+function handleOfflineRecovery(msg) {
+  alert("offline recovery called");
+  document.getElementById(`status-${alertId}`).innerHTML = `<button class="resolve" onclick="resolve(${alertId})">resolve</button>`;
+    startNavigation(alertId, msg.latitude, msg.longitude);
+    L.polyline(msg.route_path, {
+      color: "green",
+      weight: 5
+    }).addTo(map);
+}
+
 
 
 //BEARING FUNCTION
