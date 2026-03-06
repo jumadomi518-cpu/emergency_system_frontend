@@ -111,7 +111,8 @@ p {
       <p>Active emergencies: <span>${data.active}</span></p>
       <p>Resolved emergencies: <span>${data.resolved}</span></p>
       <p>Pending emergencies: <span>${data.pending}</span></p>
-          <p>Average response time: <span>${formatSeconds(data.averageTime)}</span></p>`;
+          <p>Average response time: <span>${formatSeconds(data.averageTime)}</span></p>
+          <p>In progress emergencies: <span>${data.inProgress}</span></p>`;
         
         
       } catch (error) {
@@ -155,7 +156,7 @@ p {
               hour12: true
               }) : "-";
             const arrived = document.createElement("p");
-            arrived.innerText = arrived.arrived_at ? new Date(n.arrived_at).toLocaleString("en-US", {
+            arrived.innerText = n.arrived_at ? new Date(n.arrived_at).toLocaleString("en-US", {
               year: "numeric",
               month: "short",
               day: "numeric",
