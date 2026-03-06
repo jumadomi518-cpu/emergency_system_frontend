@@ -68,16 +68,21 @@ header {
       color: white;
       padding: 0.3em;
       border-radius: 0.2em;
+      margin: 0.15em;
     }
     .reject { 
       background: red; 
       color: white;
       padding: 0.3em;
       border-radius: 0.2em;
+      margin: 0.15em;
     }
     .resolve { 
       background: purple; 
       color: white;
+      padding: 0.3em;
+      border-radius: 0.2em;
+      margin: 0.3em;
     }
     .routeOption { 
       background: #007bff; 
@@ -159,8 +164,7 @@ footer {
 </thead>
 <tbody id="rows"></tbody>
 </table>
- <div class="rem">
-</div>
+ <div class="rem"></div>
 </div>
 <div id="routeInfo">
 </div>
@@ -507,13 +511,31 @@ if (alertId) {
 }});
 
 
+async function resolve(alertId) {
+  try {
+    const response = await fetch(`${REST_URL}/api/resolve/${alertId}`, {
+      method: "PATCH"
+    })
+    if (!response.ok) {
+      throw new Error("The network was not ok");
+    }
+    const result = await response.json();
+    if (result.success) {
+      alert("The emergency has been resolved successfully. Thanks for your good work.")
+    } else {
+      alert(result.error);
+    }
+  } catch (error) {
+    alert("An error occurred. Please try again.");
+  }
+}
 
 
 function respondToAssignment(alertId, accept) {
   ws.send(JSON.stringify({ type: "RESPONDER_RESPONSE", userId: userId, alertId, accept }));
 
   if (accept) {
-    document.getElementById(`status-${alertId}`).innerText = "Accepted";
+    document.getElementById(`status-${alertId}`).innerHTML = `<button class="resolve" onclick="resolve(${alertId})">resolve</button>`;
     startNavigation(alertId, activeAssignment.latitude, activeAssignment.longitude);
 
     // Fetch routes after getting current location
