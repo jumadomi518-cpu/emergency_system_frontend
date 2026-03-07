@@ -154,6 +154,7 @@ let responderMarkers = {};
 let routeCoordinates = {};
 let routeRemainingPolyline = {};
 let routeTraveledPolyline = {};
+const animationFrames = {};
 
 let watchId = null;
 let firstUpdate = true;
@@ -411,6 +412,52 @@ navigator.geolocation.watchPosition(
 
     if (msg.type === "RESPONDER_LOCATION_UPDATE") {
       const { responderId, alertId, latitude, longitude } = msg;
+  const newCoords = [latitude, longitude];
+
+console.log(routeCoordinates[alertId])
+  updateRouteProgress(alertId, newCoords);
+
+
+
+  // Initialize marker if it doesn't exist
+  if (!responderMarkers[responderId]) {
+    responderMarkers[responderId] = L.marker(newCoords, {
+      icon: L.icon({
+        iconUrl: "../assets/emergency.png",
+        iconSize: [32, 32]
+      }),
+      rotationAngle: 0,      // plugin required
+      rotationOrigin: 'center'
+    }).addTo(map).bindPopup("Responder");
+
+    // Initialize rotation state per marker
+    responderMarkers[responderId].previousLatLng = newCoords;
+    responderMarkers[responderId].currentAngle = 0;
+  } else {
+    const marker = responderMarkers[responderId];
+
+    // Smooth rotation
+    const newBearing = calculateBearing(marker.previousLatLng, newCoords);
+    smoothRotate(marker, marker.currentAngle, newBearing);
+    marker.previousLatLng = newCoords;
+    marker.currentAngle = newBearing;
+
+    // Smooth movement along GPS
+    if (marker._latlng) {
+      animateMarker(marker, [marker._latlng.lat, marker._latlng.lng], newCoords, 1000);
+    } else {
+      marker.setLatLng(newCoords);
+    }
+  }
+
+  
+if (mapFollowResponder) {
+  map.setView(newCoords);
+}
+
+      
+      
+     /* const { responderId, alertId, latitude, longitude } = msg;
       const newLatLng = [latitude, longitude];
 
       if (!responderMarkers[responderId]) {
@@ -434,8 +481,61 @@ navigator.geolocation.watchPosition(
       if (routeCoordinates[alertId])
         updateRouteProgress(alertId, newLatLng);
     }
+    */
+    
+    
   };
 }
+
+//SMOOTH ROTATION FUNCTION
+function smoothRotate(marker, startAngle, endAngle, duration = 300) {
+  const startTime = performance.now();
+
+  let delta = endAngle - startAngle;
+
+  // Rotate via shortest path
+  if (delta > 180) delta -= 360;
+  if (delta < -180) delta += 360;
+
+  function animate(time) {
+    const progress = (time - startTime) / duration;
+
+    if (progress < 1) {
+      const angle = startAngle + delta * progress;
+      marker.setRotationAngle(angle);
+      requestAnimationFrame(animate);
+    } else {
+      marker.setRotationAngle(endAngle);
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+function animateMarker(marker, startPos, endPos, duration = 1000) {
+  const startTime = performance.now();
+
+  if (animationFrames[marker._leaflet_id]) cancelAnimationFrame(animationFrames[marker._leaflet_id]);
+
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 2);
+
+    const lat = startPos[0] + (endPos[0] - startPos[0]) * eased;
+    const lng = startPos[1] + (endPos[1] - startPos[1]) * eased;
+    marker.setLatLng([lat, lng]);
+
+    if (progress < 1) {
+      animationFrames[marker._leaflet_id] = requestAnimationFrame(step);
+    } else {
+      delete animationFrames[marker._leaflet_id];
+    }
+  }
+
+  animationFrames[marker._leaflet_id] = requestAnimationFrame(step);
+}
+
 
 let trafficMarker = null;
 
