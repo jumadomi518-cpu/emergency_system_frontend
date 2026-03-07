@@ -35,7 +35,7 @@ let toggleRobbery = true;
 const accident = document.getElementById("accident");
 const robbery = document.getElementById("robbery");
 const fire = document.getElementById("fire");
-
+const animationFrames = {};
 
 accident.onclick = () => {
 emergencyType = toggleAccident ? "ACCIDENT" : null;
@@ -575,6 +575,33 @@ async function updateRouteProgress(alertId, currentLatLng){
     alert("Responder has arrived.");
   }
 }
+
+function animateMarker(marker, startPos, endPos, duration = 1000) {
+  const startTime = performance.now();
+
+  if (animationFrames[marker._leaflet_id]) cancelAnimationFrame(animationFrames[marker._leaflet_id]);
+
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 2);
+
+    const lat = startPos[0] + (endPos[0] - startPos[0]) * eased;
+    const lng = startPos[1] + (endPos[1] - startPos[1]) * eased;
+    marker.setLatLng([lat, lng]);
+
+    if (progress < 1) {
+      animationFrames[marker._leaflet_id] = requestAnimationFrame(step);
+    } else {
+      delete animationFrames[marker._leaflet_id];
+    }
+  }
+
+  animationFrames[marker._leaflet_id] = requestAnimationFrame(step);
+}
+
+
+
 
 
 // SMOOTH MARKER
