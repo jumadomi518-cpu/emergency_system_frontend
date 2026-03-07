@@ -32,6 +32,7 @@ function saveTokenForSW(token) {
 const error = document.querySelector(".errorMsg");
 const btn = document.querySelector("button");
     const form = document.querySelector("form");
+    const regBtn = document.querySelector(".register");
     const email = document.querySelector("#email");
     const password = document.querySelector("#password");
 
@@ -46,6 +47,7 @@ const btn = document.querySelector("button");
     form.onsubmit = async (e) => {
   e.preventDefault();
   btn.innerText = "Processing...";
+  btn.disabled = true;
 
   try {
     const res = await fetch("https://campus-emergency-server.onrender.com/api/login", {
@@ -76,14 +78,18 @@ const btn = document.querySelector("button");
 
     } else {                                 error.innerText = data.message;
       error.classList.add("showError");
+      btn.disabled = false;
     }
 
   } catch (err) {
     console.error("Fetch failed:", err);
     error.innerText = "Network error. Try again.";
     error.classList.add("showError");
+    btn.disabled = false;
+      regBtn.href = "../forms/register.html"
   } finally {
     btn.innerText = "Log in";
+    btn.disabled = false;
   }
 };
 
