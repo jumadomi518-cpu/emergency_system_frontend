@@ -445,9 +445,9 @@ log(routeCoordinates[alertId])
   }
 
   
-  if (mapFollowResponder) {
-    map.panTo(newCoords, { animate: true });
-  }
+if (mapFollowResponder) {
+  map.setView(newCoords);
+}
 
   
 }
@@ -604,26 +604,3 @@ function animateMarker(marker, startPos, endPos, duration = 1000) {
 
 
 
-// SMOOTH MARKER
-function smoothMoveMarker(marker, newLatLng){
-  const current = marker.getLatLng();
-  const steps = 20;
-  let step = 0;
-
-  const latStep = (newLatLng[0] - current.lat) / steps;
-  const lngStep = (newLatLng[1] - current.lng) / steps;
-
-  function animate(){
-    if (step >= steps) return;
-
-    marker.setLatLng([
-      current.lat + latStep * step,
-      current.lng + lngStep * step
-    ]);
-
-    step++;
-    requestAnimationFrame(animate);
-  }
-
-  animate();
-}
