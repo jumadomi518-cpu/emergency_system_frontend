@@ -468,7 +468,7 @@ function showAssignmentUI(msg) {
     emergencyMarkers[msg.alertId] = L.marker([msg.latitude, msg.longitude], {
       icon: L.icon({
         iconUrl: "../assets/destination.png",
-        iconSize: [80, 80]
+        iconSize: [64, 64]
       })
     }).addTo(map).bindPopup("Emergency location")
   }
@@ -578,7 +578,7 @@ function startNavigation(alertId, destLat, destLng) {
     responderMarkers[alertId] = L.marker([0, 0], {  
       icon: L.icon({
         iconUrl: "../assets/emergency.png",
-        iconSize: [80, 80]
+        iconSize: [64, 64]
       }),
       rotationAngle: 0, 
       rotationOrigin: "center"

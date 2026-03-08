@@ -376,7 +376,7 @@ async function handleWSMessage(event){
     emergencyMarker = L.marker([latitude, longitude], {
       icon: L.icon({
         iconUrl: "../assets/emergency.png",
-        iconSize: [80, 80]
+        iconSize: [64, 64]
       })
     }).addTo(map).bindPopup(message);
 
@@ -418,7 +418,7 @@ log(routeCoordinates[alertId])
     responderMarkers[responderId] = L.marker(newCoords, {
       icon: L.icon({
         iconUrl: "../assets/emergency.png",
-        iconSize: [32, 32]
+        iconSize: [64, 64]
       }),
       rotationAngle: 0,      // plugin required
       rotationOrigin: 'center'
