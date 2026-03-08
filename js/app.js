@@ -289,7 +289,7 @@ console.log(emergencyType);
 const data = await response.json();
 
 if (data.success) {
-  alert("Emergency send successfully validation have started. Don't close the site. You will be connected shortly to the responder.");
+  alert("Emergency send successfully validation have started. Don't close the site. You will shortly be connected to the responder.");
   document.getElementById("msg").value = "";
 submitBtn.innerText = "validating...";
 } else {
@@ -376,7 +376,7 @@ async function handleWSMessage(event){
     emergencyMarker = L.marker([latitude, longitude], {
       icon: L.icon({
         iconUrl: "../assets/emergency.png",
-        iconSize: [32,32]
+        iconSize: [80, 80]
       })
     }).addTo(map).bindPopup(message);
 
