@@ -30,6 +30,12 @@
       top: 1.5rem;
       z-index: 1000;
     }
+    .marker {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: red;
+    }
     
   </style>
 </head>
@@ -52,8 +58,17 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
         throw new Error("The network was not ok.");
         }
         const data = await response.json();
+        let red = 59;
+        let green = 30;
+        let blue = 100;
        for (const n of data) {
-         const marker = L.marker([n.latitude, n.longitude]).addTo(map);
+         const marker = L.marker([n.latitude, n.longitude], {
+           icon: L.divIcon({
+             className: "marker",
+             html: "<div></div>",
+             iconSize: [40,40]
+           })
+         }).addTo(map);
          const date = new Date(n.created_at).toLocaleString("en-US", {
               year: "numeric",
               month: "short",
@@ -71,7 +86,9 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
             div.appendChild(p);
             document.querySelector("main").appendChild(div);
           })
-         
+         red = Math.floor(Math.random() * 255 + 1);
+         green = Math.floor(Math.random() * 255 + 1);
+         blue = Math.floor(Math.random() * 255 + 1);
        }
         
       } catch (error) {
