@@ -31,15 +31,6 @@
       z-index: 1000;
     }
     
-.marker {
-  width: 40px;
-      height: 50px;
-      margin: 2em;
-      border-top-right-radius: 50%;
-      border-bottom-right-radius: 50%;
-      border-top-left-radius: 50%;
-      transform: rotate(-45deg);
-}
 
   </style>
 </head>
@@ -69,7 +60,14 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
   const marker = L.marker([n.latitude, n.longitude], {
     icon: L.divIcon({
       className: "marker",
-      html: `<div style="background: rgb(${red}, ${green}, ${blue});"></div>`,
+      html: `<div style="
+      width: 40px;
+      height: 50px;
+      border-top-right-radius: 50%;
+      border-bottom-right-radius: 50%;
+      border-top-left-radius: 50%;
+      transform: rotate(-45deg);
+      background: rgb(${red}, ${green}, ${blue});"></div>`,
       iconSize: [40, 40]
     })
   }).addTo(map);
