@@ -69,6 +69,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
              iconSize: [40,40]
            })
          }).addTo(map);
+         customMarker._icon.querySelector("div").style.background = `rgb(${red}, ${green}, ${blue})`;
          const date = new Date(n.created_at).toLocaleString("en-US", {
               year: "numeric",
               month: "short",
