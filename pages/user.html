@@ -68,30 +68,9 @@ header {
   }
   
   .buttonsParent {
-    width: 50%;
-  }
-  .buttons {
     width: 100%;
-    padding: 1.5em;
-    display: grid;
-    place-items: center;
-    
   }
-  
-  .buttons button {
-    font-size: 1.4rem;
-    display: block;
-    width: 100%;
-    padding: 0.5em;
-    text-align: left;
-    margin-top: 0.7em;
-    border-radius: 0.2em;
-    white-space: nowrap;
-    overflow: scroll;
-    background-color: cadetblue;
-    color: white;
 
-  }
   
 #etaDisplay {
   font-size: 1.4rem;
@@ -106,20 +85,7 @@ header {
     height: 10vh;
   }
   
-  .ambuAncestor {
-    display: flex;
-    justify-content: space-evenly;
-  }
-  .ambulance {
-    display: grid;
-    place-items: center;
-    width: 50%;
-  }
   
-  #ambulance {
-    object-fit: contain;
-    height: 20vh;
-  }
 
 .submit:active {
   background-color: green;
@@ -156,7 +122,7 @@ header {
     font-size: 1.3rem;
     display: flex;
     justify-content: space-between;
-    padding: 2em;
+    padding: 2em 1em 2em 1em;
   }
   
   .tracking button {
@@ -171,13 +137,45 @@ header {
     
   }
   
-  button {
+  .buttons {
+      padding: 2em;
+      box-shadow: 0 0 4px 0 black;
+    }
+    
+    .buttons div {
+      display: flex;
+      justify-content: space-between;
+    }
+    
+.buttons button, .icon {
+      font-size: 1.5rem;
+      text-align: left;
+      padding: 0.3em;
+      margin-top: 0.5em;
+    }
+    
+   .buttons button {
+      width: 80%;
+      background-color: green;
+      color: white;
+      border: 2px solid green;
+    }
+    
+    .icon {
+      width: 20%;
+      display: grid;
+      place-items: center;
+      border: 2px solid green;
+      border-right: none;
+    }
+    
+ /* button {
     border: none;
   }
-  
-/*  button:active {
+  */
+  button:active {
     background-color: black;
-  }*/
+  }
   
 a {
 font-size: 1.3rem;
@@ -197,7 +195,6 @@ font-size: 1.3rem;
 }
   .status {
     font-size: 1.4rem;
-    margin: 0.5em;
     display: flex;
     justify-content: space-between;
   }
@@ -211,7 +208,7 @@ font-size: 1.3rem;
   border-radius: 50%;
 }
 .voteContainer {
-  font-size: 1.2rem !important;
+  font-size: 1.4rem !important;
   padding: 0.5em;
   display: flex;
   border: 2px solid green;
@@ -262,6 +259,7 @@ font-size: 1.3rem;
 
 
   </style>
+    <link rel="stylesheet" href="/frontend/lib/fontawesome/css/all.css" />
 </head>
 <body>
 
@@ -273,17 +271,18 @@ font-size: 1.3rem;
 <h1>Emergency Response System.</h1>
     </div>
   </header>
-  <div class="logout"><a href="https://emergency-system-frontend.vercel.app/">Log out</a></div>
+  <div class="logout"><a href="https://mbiu.space/">Log out</a></div>
 <section class="ambuAncestor">
-  <div class="ambulance">
-  <img src="../assets/images.png" id="ambulance">
-  </div>
+  
   <div class="buttonsParent">
-  <div class="buttons">
-    <button id="robbery">Robbery</button>
-    <button id="accident">Accident</button>
-    <button id="fire">Fire outbreak</button>
-  </div>
+        <div class="buttons">
+      <div><p class="icon"><i class="fas fa-ambulance"></i></p><button>Medical</button></div>
+      <div><p class="icon"><i class="fas fa-car-crash"></i></p><button id="accident">Accident</button></div>
+      <div><p class="icon"><i class="fas fa-fire"></i></p><button id="fire">Fire</button></div>
+  <div><p class="icon"><i class="fas fa-user-shield"></i></p><button id="robbery">Crime</button></div>
+<div><p class="icon"><i class="fas fa-volcano"></i></p><button>Disaster</button></div>
+      
+    </div>
   </div>
 </section>
 
@@ -295,13 +294,13 @@ font-size: 1.3rem;
 <button onclick="trigger()" class="submit">Submit</button>
 </div>
 <div class="tracking">
-<button onclick="start()">Start Tracking</button>
-<button onclick="stop()">Stop Tracking</button>
+<button onclick="start()">Start location sharing</button>
+<button onclick="stop()">Stop location sharing</button>
 </div>
   </section>
 <div class="status">
   <div>
-  Status: Tracking <span id="statusText">OFF</span>
+  Status: Location <span id="statusText">OFF</span>
   </div>
   <div class="show">
    ⛶
@@ -327,7 +326,6 @@ font-size: 1.3rem;
   color: white;
   font-size: 12px;
   z-index: 9999;
-  display: none;
   padding: 5px;
   font-family: monospace;
 "></div>
