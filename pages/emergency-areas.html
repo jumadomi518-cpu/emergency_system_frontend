@@ -57,46 +57,37 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
     if (!response.ok) throw new Error("The network was not ok.");
 
     const data = await response.json();
-    let red = 59, green = 30, blue = 100;
-
     for (const n of data) {
-      const marker = L.marker([n.latitude, n.longitude], {
-        icon: L.divIcon({
-          className: "marker",
-          html: `<div style="width:40px;height:40px;border-radius:50%;"></div>`,
-          iconSize: [40, 40]
-        })
-      }).addTo(map);
+  const red = Math.floor(Math.random() * 256);
+  const green = Math.floor(Math.random() * 256);
+  const blue = Math.floor(Math.random() * 256);
 
-      
-      setTimeout(() => {
-        marker._icon.querySelector("div").style.background = `rgb(${red}, ${green}, ${blue})`;
-      }, 0);
+  const marker = L.marker([n.latitude, n.longitude], {
+    icon: L.divIcon({
+      className: "marker",
+      html: `<div style="width:40px;height:40px;border-radius:50%;background: rgb(${red}, ${green}, ${blue});"></div>`,
+      iconSize: [40, 40]
+    })
+  }).addTo(map);
 
-      const date = new Date(n.created_at).toLocaleString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true
-      });
+  const date = new Date(n.created_at).toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true
+  });
 
-      marker.on("click", () => {
-        const div = document.createElement("div");
-        div.className = "alert";
-        const p = document.createElement("p");
-        p.innerText = `${n.emergency_type} reported on ${date}`;
-        div.appendChild(p);
-        document.querySelector("main").appendChild(div);
-      });
+  marker.on("click", () => {
+    const div = document.createElement("div");
+    div.className = "alert";
+    div.innerText = `${n.emergency_type} reported on ${date}`;
+    document.querySelector("main").appendChild(div);
+  });
+}
 
-      
-      red = Math.floor(Math.random() * 256);
-      green = Math.floor(Math.random() * 256);
-      blue = Math.floor(Math.random() * 256);
-    }
   } catch (error) {
     console.log("An error occurred while fetching alerts ", error.message);
   }
