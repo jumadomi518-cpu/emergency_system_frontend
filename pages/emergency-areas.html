@@ -32,26 +32,15 @@
     }
     
 .marker {
-  width: 30px;
-  height: 30px;
-  background-color: red;
-  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-  position: relative;
+  width: 40px;
+      height: 50px;
+      background-color: green;
+      margin: 2em;
+      border-top-right-radius: 50%;
+      border-bottom-right-radius: 50%;
+      border-top-left-radius: 50%;
+      transform: rotate(-45deg);
 }
-
-.marker::after {
-  content: '';
-  position: absolute;
-  bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 10px solid transparent;
-  border-right: 10px solid transparent;
-  border-top: 10px solid red;
-}
-    
   </style>
 </head>
 
