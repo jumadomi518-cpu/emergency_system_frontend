@@ -412,10 +412,11 @@ navigator.geolocation.watchPosition(
     const msg = JSON.parse(e.data);
 
     if (msg.type === "RESPONDER_LOCATION_UPDATE") {
+      
       const { responderId, alertId, latitude, longitude } = msg;
   const newCoords = [latitude, longitude];
 
-console.log(routeCoordinates[alertId])
+log(routeCoordinates[alertId])
   updateRouteProgress(alertId, newCoords);
 
 
@@ -431,13 +432,10 @@ console.log(routeCoordinates[alertId])
       rotationOrigin: 'center'
     }).addTo(map).bindPopup("Responder");
 
-b    // Initialize rotation state per marker
+    // Initialize rotation state per marker
     responderMarkers[responderId].previousLatLng = newCoords;
     responderMarkers[responderId].currentAngle = 0;
   } else {
-    
-    
-    
     const marker = responderMarkers[responderId];
 
     // Smooth rotation
@@ -447,20 +445,11 @@ b    // Initialize rotation state per marker
     marker.currentAngle = newBearing;
 
     // Smooth movement along GPS
-    const currentPos = marker.getLatLng();
-
-animateMarker(
-  marker,
-  [currentPos.lat, currentPos.lng],
-  newCoords,
-  1000
-);
-    
-  /*  if (marker._latlng) {
+    if (marker._latlng) {
       animateMarker(marker, [marker._latlng.lat, marker._latlng.lng], newCoords, 1000);
     } else {
       marker.setLatLng(newCoords);
-    }*/
+    }
   }
 
   
@@ -468,34 +457,6 @@ if (mapFollowResponder) {
   map.setView(newCoords);
 }
 
-      
-      
-     /* const { responderId, alertId, latitude, longitude } = msg;
-      const newLatLng = [latitude, longitude];
-
-      if (!responderMarkers[responderId]) {
-        responderMarkers[responderId] = L.marker(newLatLng, {
-          icon: L.icon({
-            iconUrl: "../assets/emergency.png",
-            iconSize: [34,34],
-            iconAnchor: [17,34]
-          })
-        })
-        .addTo(map)
-        .bindPopup("Emergency Responder");
-      } else {
-        smoothMoveMarker(responderMarkers[responderId], newLatLng, 800);
-      }
-
-      if (mapFollowResponder) {
-  map.setView(newLatLng, map.getZoom(), { animate: false });
-}
-
-      if (routeCoordinates[alertId])
-        updateRouteProgress(alertId, newLatLng);
-    }
-    */
-    
     
   };
 }
@@ -548,6 +509,30 @@ function animateMarker(marker, startPos, endPos, duration = 1000) {
 
   animationFrames[marker._leaflet_id] = requestAnimationFrame(step);
 }
+
+
+
+function calculateBearing(start, end) {
+  const lat1 = start[0] * Math.PI / 180;
+  const lat2 = end[0] * Math.PI / 180;
+  const dLng = (end[1] - start[1]) * Math.PI / 180;
+
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+
+  const brng = Math.atan2(y, x);
+
+  return (brng * 180 / Math.PI + 360) % 360;
+}
+
+
+
+
+
+
+
 
 
 let trafficMarker = null;
