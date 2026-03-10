@@ -20,23 +20,28 @@
       position: relative;
     }
     .alert {
-      padding: 1em;
       width: 30%;
       background-color: whitesmoke;
       font-size: 1.2rem;
-      border: 2px solid black;
       position: absolute;
       right: 1.5rem;
       top: 1.5rem;
       z-index: 1000;
     }
     
+    p {
+      font-size: inherit;
+      padding: 1em;
+      border: 2px solid green;
+    }
 
   </style>
 </head>
 
 <body>
   <main>
+    <div class="alert">
+    </div>
   <div id="map"></div>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -63,8 +68,8 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
     const data = await response.json();
     let selectedRing = L.circleMarker([0, 0], {
-  radius: 25,
-  color: "yellow",
+  radius: 40,
+  color: "blue",
   weight: 5,
   fillOpacity: 0,
   dashArray: "5,5"
@@ -87,7 +92,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
       border-top-left-radius: 50%;
       transform: rotate(-45deg);
       background: rgb(${red}, ${green}, ${blue});"></div>`,
-      iconSize: [40, 40]
+      iconSize: [34, 34]
     })
   }).addTo(map);
 
@@ -105,10 +110,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
     selectedRing.setLatLng(marker.getLatLng());
 
-    const div = document.createElement("div");
-    div.className = "alert";
-    div.innerText = `${n.emergency_type} reported on ${date}`;
-    document.querySelector("main").appendChild(div);
+  document.querySelector(".alert").innerHTML =  `<p>${n.emergency_type} was reported on ${date}</p>`
 
   });
 
