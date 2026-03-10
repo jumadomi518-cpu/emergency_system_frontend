@@ -416,7 +416,7 @@ navigator.geolocation.watchPosition(
       const { responderId, alertId, latitude, longitude } = msg;
   const newCoords = [latitude, longitude];
 
-log(routeCoordinates[alertId])
+console.log(routeCoordinates[alertId])
   updateRouteProgress(alertId, newCoords);
 
 
