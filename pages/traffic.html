@@ -412,7 +412,6 @@ navigator.geolocation.watchPosition(
     const msg = JSON.parse(e.data);
 
     if (msg.type === "RESPONDER_LOCATION_UPDATE") {
-      alert("New location received");
       const { responderId, alertId, latitude, longitude } = msg;
   const newCoords = [latitude, longitude];
 
@@ -432,7 +431,7 @@ console.log(routeCoordinates[alertId])
       rotationOrigin: 'center'
     }).addTo(map).bindPopup("Responder");
 
-    // Initialize rotation state per marker
+b    // Initialize rotation state per marker
     responderMarkers[responderId].previousLatLng = newCoords;
     responderMarkers[responderId].currentAngle = 0;
   } else {
