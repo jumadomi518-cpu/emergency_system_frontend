@@ -412,6 +412,7 @@ navigator.geolocation.watchPosition(
     const msg = JSON.parse(e.data);
 
     if (msg.type === "RESPONDER_LOCATION_UPDATE") {
+      alert("New location received");
       const { responderId, alertId, latitude, longitude } = msg;
   const newCoords = [latitude, longitude];
 
@@ -435,6 +436,9 @@ console.log(routeCoordinates[alertId])
     responderMarkers[responderId].previousLatLng = newCoords;
     responderMarkers[responderId].currentAngle = 0;
   } else {
+    
+    
+    
     const marker = responderMarkers[responderId];
 
     // Smooth rotation
@@ -444,11 +448,20 @@ console.log(routeCoordinates[alertId])
     marker.currentAngle = newBearing;
 
     // Smooth movement along GPS
-    if (marker._latlng) {
+    const currentPos = marker.getLatLng();
+
+animateMarker(
+  marker,
+  [currentPos.lat, currentPos.lng],
+  newCoords,
+  1000
+);
+    
+  /*  if (marker._latlng) {
       animateMarker(marker, [marker._latlng.lat, marker._latlng.lng], newCoords, 1000);
     } else {
       marker.setLatLng(newCoords);
-    }
+    }*/
   }
 
   
